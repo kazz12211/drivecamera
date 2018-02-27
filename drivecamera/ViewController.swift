@@ -20,6 +20,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     @IBOutlet weak var statusLabel: UILabel!
     @IBOutlet weak var recordButton: UIButton!
     @IBOutlet weak var speedLabel: UILabel!
+    @IBOutlet weak var autoStartSwitch: UISwitch!
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
     var centralManager: CBCentralManager!
@@ -35,12 +36,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     var filePath: String!
     var recording: Bool = false
     var gsensibility: Double = 2.8
+    var autoStart: Bool = true;
     
     var previewLayer: AVCaptureVideoPreviewLayer!
-    var dateTimeLayer: CATextLayer!
     
     //var testSpeed:Double = 0
     
+    // カメラプレビューの設定
     private func setupPreview() {
         previewLayer = AVCaptureVideoPreviewLayer(session:session)
         previewLayer.backgroundColor = UIColor.black.cgColor
@@ -53,6 +55,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         previewLayerConnection.videoOrientation = .landscapeRight
     }
     
+    // ビデオキャプチャーの設定
     private func setupVideo() {
         session = AVCaptureSession()
         session.sessionPreset = AVCaptureSession.Preset.high
@@ -101,11 +104,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
             
             setupPreview()
             
+            session.startRunning()
+            
         } catch let error {
             print("cannot use camera \(error)")
         }
     }
     
+    // 位置情報サービスを開始
     private func setupLocationManager() {
         self.locationManager.delegate = self
         let status = CLLocationManager.authorizationStatus()
@@ -116,10 +122,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         self.locationManager.startUpdatingLocation()
     }
 
+    // Bluetoothセントラルの開始
     private func setupBluetooth() {
         self.centralManager = CBCentralManager(delegate:self, queue:nil, options:nil)
     }
 
+    // 加速度センサーの利用開始
     private func setupMotionManager() {
         if motionManager.isAccelerometerAvailable {
             motionManager.accelerometerUpdateInterval = 1 / 60
@@ -141,6 +149,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
     
+    // 録画ボタンの状態変更
     private func updateButton() {
         if recording {
             recordButton.setTitle("停止", for: UIControlState.normal)
@@ -155,14 +164,15 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
     
+    // 録画停止
     private func stopRecording() {
         fileOutput.stopRecording()
-        session.stopRunning()
         recording = false
         UISaveVideoAtPathToSavedPhotosAlbum(filePath, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
         updateButton()
     }
     
+    // 録画開始
     private func startRecording() {
         filePath = NSHomeDirectory() + "/Documents/drivecamera_tmp.mp4"
         if FileManager.default.fileExists(atPath: filePath) {
@@ -173,12 +183,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
             }
         }
         let fileURL: URL = URL(fileURLWithPath: filePath)
-        session.startRunning()
         recording = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
         updateButton()
     }
     
+    // 動画の録画・停止アクション
     @IBAction func recordOrStop(sender: AnyObject) {
         if recording {
             self.stopRecording()
@@ -187,6 +197,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
     
+    // Gセンサーの感度設定アクション
     @IBAction func gsensitibityChanged(sender: AnyObject) {
         switch gsensorSegmentedController.selectedSegmentIndex {
         case 0:
@@ -203,6 +214,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
     
+    // 自動録画設定アクション
+    @IBAction func changeAutoStart(_ sender: Any) {
+        self.autoStart = self.autoStartSwitch.isOn
+    }
+    
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         print("capture finished")
     }
@@ -215,14 +231,19 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
     
+    private func showBleStatus(str:String) {
+        self.statusLabel.text = str
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
         self.speedLabel.text = "0"
-        self.statusLabel.text = ""
         self.gsensorSegmentedController.selectedSegmentIndex = 1
         self.gsensibility = 2.8
+        self.autoStartSwitch.isOn = true
 
+        self.showBleStatus(str: "")
         self.setupLocationManager()
         self.setupBluetooth()
         self.setupMotionManager()
@@ -242,16 +263,21 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         if speed < 0 {
             speed = 0
         }
+        speed *= 3.6
+        
         sendSpeed(speed:speed)
         //sendSpeed(speed:self.testSpeed)
         //self.testSpeed += 1.0
         
+        if(speed > 5.0 && !self.recording && self.autoStart) {
+            self.startRecording()
+        }
     }
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
-            self.statusLabel.text = "Scanning.."
+            self.showBleStatus(str: "Scanning")
             self.centralManager.scanForPeripherals(withServices: nil, options: nil)
         default:
             print(central.state)
@@ -263,13 +289,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         if localName == "Speedmeter" {
             central.stopScan()
             self.speedmeterPeripheral = peripheral
-            self.statusLabel.text = "Connecting..."
+            self.showBleStatus(str: "Connecting")
             central.connect(self.speedmeterPeripheral, options: nil)
         }
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        statusLabel.text = "Connected"
+        self.showBleStatus(str: "Connected")
         self.speedmeterPeripheral.delegate = self
         self.speedmeterPeripheral.discoverServices(nil)
     }
@@ -291,21 +317,27 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
             break
         }
     }
+    
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        self.showBleStatus(str: "Scanning")
+        self.speedmeterPeripheral = nil
+        self.speedCharacteristic = nil
+        self.centralManager.scanForPeripherals(withServices: nil, options: nil)
+    }
 
     func sendSpeed(speed:CLLocationSpeed) {
-        let kmh = speed * 3.6
-        self.speedLabel.text = "".appendingFormat("%.0f", kmh)
-        if kmh < 50 {
+        self.speedLabel.text = "".appendingFormat("%.0f", speed)
+        if speed < 50 {
             self.meterPanel.backgroundColor = UIColor.black
-        } else if kmh < 70 {
+        } else if speed < 70 {
             self.meterPanel.backgroundColor = UIColor.blue
-        } else if kmh < 100 {
+        } else if speed < 100 {
             self.meterPanel.backgroundColor = UIColor.magenta
         } else {
             self.meterPanel.backgroundColor = UIColor.red
         }
         if self.speedCharacteristic != nil {
-            let str = "".appendingFormat("{speed:%.0f}", kmh)
+            let str = "".appendingFormat("{speed:%.0f}", speed)
             let data = str.data(using: String.Encoding.utf8)!
             self.speedmeterPeripheral.writeValue(data, for: self.speedCharacteristic, type: CBCharacteristicWriteType.withResponse)
         }
