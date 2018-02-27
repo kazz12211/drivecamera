@@ -21,6 +21,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     @IBOutlet weak var recordButton: UIButton!
     @IBOutlet weak var speedLabel: UILabel!
     @IBOutlet weak var autoStartSwitch: UISwitch!
+    @IBOutlet weak var altitudeLabel: UILabel!
+    @IBOutlet weak var latitudeLabel: UILabel!
+    @IBOutlet weak var longitudeLabel: UILabel!
+    @IBOutlet weak var qualitySegmentedControl: UISegmentedControl!
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
     var centralManager: CBCentralManager!
@@ -37,10 +41,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     var recording: Bool = false
     var gsensibility: Double = 2.8
     var autoStart: Bool = true;
+    var autoStop: Bool = true;
     
     var previewLayer: AVCaptureVideoPreviewLayer!
+    var timestampLayer: CATextLayer!
+    var timestampFormatter: DateFormatter!
     
-    //var testSpeed:Double = 0
+    var testSpeed:Double = 0
     
     // カメラプレビューの設定
     private func setupPreview() {
@@ -50,15 +57,32 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         
         previewLayer.frame = previewView.bounds
         previewView.layer.addSublayer(previewLayer)
+        
+        timestampLayer = CATextLayer()
+        timestampLayer.frame = CGRect(x: 4, y: 4, width: 130, height: 20)
+        timestampLayer.foregroundColor = UIColor.white.cgColor
+        timestampLayer.fontSize = 14.0
+        timestampLayer.allowsEdgeAntialiasing = true
+        timestampLayer.string = timestampFormatter.string(from: Date())
+        previewView.layer.addSublayer(timestampLayer)
                 
         let previewLayerConnection: AVCaptureConnection  = previewLayer.connection!
         previewLayerConnection.videoOrientation = .landscapeRight
+        
+        let composition = AVMutableVideoComposition()
+        composition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: previewLayer, in: previewView.layer)
+        
+        let timer = Timer.scheduledTimer(timeInterval: 1/10, target: self, selector: #selector(updateClock), userInfo: nil, repeats: true)
+        timer.fire()
     }
     
+    @objc func updateClock() {
+        self.timestampLayer.string = timestampFormatter.string(from: Date())
+    }
     // ビデオキャプチャーの設定
     private func setupVideo() {
         session = AVCaptureSession()
-        session.sessionPreset = AVCaptureSession.Preset.high
+        session.sessionPreset = AVCaptureSession.Preset.hd1280x720
         let discoverySession = AVCaptureDevice.DiscoverySession.init(deviceTypes: [AVCaptureDevice.DeviceType.builtInWideAngleCamera], mediaType: AVMediaType.video, position: AVCaptureDevice.Position.back)
         let devices = discoverySession.devices
         for device in devices {
@@ -151,16 +175,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     
     // 録画ボタンの状態変更
     private func updateButton() {
-        if recording {
-            recordButton.setTitle("停止", for: UIControlState.normal)
-            recordButton.backgroundColor = UIColor.red
-            recordButton.layer.masksToBounds = true
-            recordButton.layer.cornerRadius = 8.0
+        if self.recording {
+            self.recordButton.setTitle("停止", for: UIControlState.normal)
+            self.recordButton.backgroundColor = UIColor.red
+            UIView.animateKeyframes(withDuration: 1.0, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
+                self.recordButton.alpha = 0.5
+            }, completion: nil)
+
         } else {
-            recordButton.setTitle("録画", for: UIControlState.normal)
-            recordButton.backgroundColor = UIColor.blue
-            recordButton.layer.masksToBounds = true
-            recordButton.layer.cornerRadius = 8.0
+            self.recordButton.setTitle("録画", for: UIControlState.normal)
+            self.recordButton.backgroundColor = UIColor.blue
+            self.recordButton.layer.removeAllAnimations()
+            self.recordButton.alpha = 1.0
         }
     }
     
@@ -201,22 +227,32 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     @IBAction func gsensitibityChanged(sender: AnyObject) {
         switch gsensorSegmentedController.selectedSegmentIndex {
         case 0:
-            gsensibility = 1.8
+            gsensibility = 4.2
             break
         case 1:
             gsensibility = 2.8
             break
         case 2:
-            gsensibility = 4.2
+            gsensibility = 1.8
             break;
         default:
             gsensibility = 2.8
         }
     }
     
+    @IBAction func qualityChanged(_ sender: Any) {
+        self.session.stopRunning()
+        if self.qualitySegmentedControl.selectedSegmentIndex == 0 {
+            self.session.sessionPreset = .hd1280x720
+        } else {
+            self.session.sessionPreset = .hd1920x1080
+        }
+        self.session.startRunning()
+    }
     // 自動録画設定アクション
     @IBAction func changeAutoStart(_ sender: Any) {
         self.autoStart = self.autoStartSwitch.isOn
+        self.autoStop = self.autoStart
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
@@ -242,6 +278,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         self.gsensorSegmentedController.selectedSegmentIndex = 1
         self.gsensibility = 2.8
         self.autoStartSwitch.isOn = true
+        self.recordButton.layer.masksToBounds = true
+        self.recordButton.layer.cornerRadius = 8.0
+        self.timestampFormatter = DateFormatter()
+        self.timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
 
         self.showBleStatus(str: "")
         self.setupLocationManager()
@@ -259,6 +299,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let myLocation = locations.last! as CLLocation
         var speed = myLocation.speed
+        let altitude = myLocation.altitude
+        let latitude = myLocation.coordinate.latitude
+        let longitude = myLocation.coordinate.longitude
+        
+        self.altitudeLabel.text = "".appendingFormat("%.0f m", altitude)
+        self.latitudeLabel.text = "".appendingFormat("%.5f", latitude)
+        self.longitudeLabel.text = "".appendingFormat("%.5f", longitude)
         
         if speed < 0 {
             speed = 0
@@ -266,9 +313,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         speed *= 3.6
         
         sendSpeed(speed:speed)
-        //sendSpeed(speed:self.testSpeed)
-        //self.testSpeed += 1.0
-        
+        /*
+        sendSpeed(speed:self.testSpeed)
+        if self.testSpeed > 130 {
+            self.testSpeed = 60
+        } else {
+            self.testSpeed += 10.0
+        }
+         */
         // 時速５キロを超えたら録画を自動的に開始する
         if(speed > 5.0 && !self.recording && self.autoStart) {
             self.startRecording()
@@ -328,6 +380,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
 
     func sendSpeed(speed:CLLocationSpeed) {
         self.speedLabel.text = "".appendingFormat("%.0f", speed)
+        
         if speed < 50 {
             self.meterPanel.backgroundColor = UIColor.black
         } else if speed < 70 {
@@ -337,6 +390,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         } else {
             self.meterPanel.backgroundColor = UIColor.red
         }
+        if speed >= 110 {
+            self.startBlinking()
+        } else {
+            self.stopBlinking()
+        }
+        // BLEペリフェラルデバイスにスピードを送信
         if self.speedCharacteristic != nil {
             let str = "".appendingFormat("{speed:%.0f}", speed)
             let data = str.data(using: String.Encoding.utf8)!
@@ -344,5 +403,15 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         }
     }
 
+    private func startBlinking() {
+        UIView.animateKeyframes(withDuration: 0.6, delay: 0.0, options: UIViewKeyframeAnimationOptions.repeat, animations: {
+            self.meterPanel.alpha = 0.2
+        }, completion: nil)
+    }
+    
+    private func stopBlinking() {
+        self.meterPanel.layer.removeAllAnimations()
+        self.meterPanel.alpha = 1.0
+    }
 }
 
