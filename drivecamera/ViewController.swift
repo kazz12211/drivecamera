@@ -269,6 +269,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, CBCentralMana
         //sendSpeed(speed:self.testSpeed)
         //self.testSpeed += 1.0
         
+        // 時速５キロを超えたら録画を自動的に開始する
         if(speed > 5.0 && !self.recording && self.autoStart) {
             self.startRecording()
         }
