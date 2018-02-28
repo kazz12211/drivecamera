@@ -24,7 +24,9 @@ class ViewController: UIViewController {
     @IBOutlet weak var altitudeLabel: UILabel!
     @IBOutlet weak var latitudeLabel: UILabel!
     @IBOutlet weak var longitudeLabel: UILabel!
+    @IBOutlet weak var batteryLevelLabel: UILabel!
     @IBOutlet weak var qualitySegmentedControl: UISegmentedControl!
+    @IBOutlet weak var audioSwitch: UISwitch!
     
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
@@ -52,6 +54,7 @@ class ViewController: UIViewController {
     var timestampFormatter: DateFormatter!
     var filenameFormatter: DateFormatter!
     var speeds: [Double]!
+    var recordAudio: Bool = true
     
     var testSpeed:Double = 0
     
@@ -73,6 +76,7 @@ class ViewController: UIViewController {
         static let SpeedNormalKey = "SpeedNormal"
         static let SpeedHighKey = "SpeedHigh"
         static let SpeedVeryHighKey = "SpeedVeryHigh"
+        static let RecordAudioKey = "RecordAudio"
     }
     
 
@@ -102,7 +106,7 @@ class ViewController: UIViewController {
         timestampLayer.allowsEdgeAntialiasing = true
         timestampLayer.string = timestampFormatter.string(from: Date())
         previewView.layer.addSublayer(timestampLayer)
-        let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(updateClock), userInfo: nil, repeats: true)
+        let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(ViewController.updateClock), userInfo: nil, repeats: true)
         timer.fire()
    }
     
@@ -130,7 +134,6 @@ class ViewController: UIViewController {
         videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
 
         
-        audioDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInMicrophone, for: AVMediaType.audio, position: AVCaptureDevice.Position.unspecified)
         
         do {
             videoInput = try AVCaptureDeviceInput(device:videoDevice)
@@ -138,15 +141,33 @@ class ViewController: UIViewController {
                 captureSession.addInput(videoInput)
             }
             
+        } catch {
+            print("cannot setup capture device", error)
+        }
+        
+        if recordAudio {
+            addAudioInput()
+        }
+    }
+    
+    private func removeAudioInput() {
+        captureSession.removeInput(audioInput)
+        audioDevice = nil
+    }
+    
+    private func addAudioInput() {
+        audioDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInMicrophone, for: AVMediaType.audio, position: AVCaptureDevice.Position.unspecified)
+        
+        do {
             audioInput = try AVCaptureDeviceInput(device: audioDevice)
             if captureSession.canAddInput(audioInput) {
                 captureSession.addInput(audioInput)
             }
+
         } catch {
-            print("cannot setup capture device", error)
+            print("cannot add audio input device")
         }
     }
-    
     // 動画録画先の設定
     private func setupVideoOutput() {
         fileOutput = AVCaptureMovieFileOutput()
@@ -216,18 +237,19 @@ class ViewController: UIViewController {
         }
     }
     
+    private func setupBatteryLevelMonitoring() {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
+        NotificationCenter.default.addObserver(self, selector: #selector(ViewController.batteryLevelChanged(notification:)), name: NSNotification.Name.UIDeviceBatteryLevelDidChange, object: nil)
+    }
     // 録画ボタンの状態変更
     private func updateButton() {
         if recordingInProgress {
-            recordButton.setTitle("停止", for: UIControlState.normal)
-            recordButton.backgroundColor = UIColor.red
-            UIView.animateKeyframes(withDuration: 1.0, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
-                self.recordButton.alpha = 0.5
+            UIView.animateKeyframes(withDuration: 1.5, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
+                self.recordButton.alpha = 0.1
             }, completion: nil)
 
         } else {
-            recordButton.setTitle("録画", for: UIControlState.normal)
-            recordButton.backgroundColor = UIColor.blue
             recordButton.layer.removeAllAnimations()
             recordButton.alpha = 1.0
         }
@@ -303,6 +325,20 @@ class ViewController: UIViewController {
         saveUserDefaults()
     }
     
+    @IBAction func audioSwitchChanged(_ sender: Any) {
+        recordAudio = audioSwitch.isOn
+        
+        stopCaptureSession()
+        
+        if !recordAudio {
+            removeAudioInput()
+        } else {
+            addAudioInput()
+        }
+        
+        startCaptureSession()
+    }
+    
     @objc func video(videoPath: NSString, didFinishSavingWithError error: NSError?, contextInfo info: AnyObject) {
         if error != nil {
             print("video saving error")
@@ -315,6 +351,14 @@ class ViewController: UIViewController {
              
             }
         }
+    }
+    
+    @objc func batteryLevelChanged(notification: NSNotification)  {
+        showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
+    }
+    
+    private func showBatteryLevel(batteryLevel: Float) {
+        batteryLevelLabel.text = "".appendingFormat("%.0f%%", batteryLevel * 100)
     }
     
     private func showBleStatus(str:String) {
@@ -357,6 +401,9 @@ class ViewController: UIViewController {
         if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
             speeds[1] = defaults.double(forKey: Constants.SpeedVeryHighKey)
         }
+        
+        recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
+        audioSwitch.isOn = recordAudio
     }
     
     private func saveUserDefaults() {
@@ -370,6 +417,7 @@ class ViewController: UIViewController {
         defaults.set(speeds[2], forKey: Constants.SpeedNormalKey)
         defaults.set(speeds[3], forKey: Constants.SpeedHighKey)
         defaults.set(speeds[4], forKey: Constants.SpeedVeryHighKey)
+        defaults.set(recordAudio, forKey: Constants.RecordAudioKey)
     }
     
     override func viewDidLoad() {
@@ -380,11 +428,12 @@ class ViewController: UIViewController {
         gsensibility = Constants.GSensorMedium
         autoStartSwitch.isOn = true
         recordButton.layer.masksToBounds = true
-        recordButton.layer.cornerRadius = 8.0
+        recordButton.layer.cornerRadius = 24.0
         timestampFormatter = DateFormatter()
         timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
         filenameFormatter = DateFormatter()
         filenameFormatter.dateFormat = "yyyy-mm-dd_HH:mm:ss"
+        recordButton.backgroundColor = UIColor.red
         
         reflectUserDefaults()
 
@@ -397,6 +446,7 @@ class ViewController: UIViewController {
         setupVideoOutput()
         setupPreviewLayer()
         setupTimestampLayer()
+        setupBatteryLevelMonitoring()
         updateButton()
         startCaptureSession()
     }
