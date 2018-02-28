@@ -27,6 +27,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var batteryLevelLabel: UILabel!
     @IBOutlet weak var qualitySegmentedControl: UISegmentedControl!
     @IBOutlet weak var audioSwitch: UISwitch!
+    @IBOutlet weak var freeStorageLabel: UILabel!
     
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
@@ -132,8 +133,6 @@ class ViewController: UIViewController {
         
         videoDevice = devices.first
         videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
-
-        
         
         do {
             videoInput = try AVCaptureDeviceInput(device:videoDevice)
@@ -188,6 +187,17 @@ class ViewController: UIViewController {
         if videoConnection.isVideoOrientationSupported {
             videoConnection.videoOrientation = AVCaptureVideoOrientation.landscapeRight
         }
+        
+        /*
+        let videoOutput = AVCaptureVideoDataOutput()
+        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        videoOutput.alwaysDiscardsLateVideoFrames = true
+        let queue = DispatchQueue(label: "drivecamera")
+        videoOutput.setSampleBufferDelegate(self, queue: queue)
+        if captureSession.canAddOutput(videoOutput) {
+            captureSession.addOutput(videoOutput)
+        }
+         */
     }
     
     // キャプチャーセッションの開始
@@ -329,6 +339,7 @@ class ViewController: UIViewController {
         saveUserDefaults()
     }
     
+    // 音声の取り込みのオンオフ
     @IBAction func audioSwitchChanged(_ sender: Any) {
         recordAudio = audioSwitch.isOn
         
@@ -341,6 +352,8 @@ class ViewController: UIViewController {
         }
         
         startCaptureSession()
+
+        saveUserDefaults()
     }
     
     @objc func video(videoPath: NSString, didFinishSavingWithError error: NSError?, contextInfo info: AnyObject) {
@@ -367,6 +380,25 @@ class ViewController: UIViewController {
     
     private func showBleStatus(str:String) {
         statusLabel.text = str
+    }
+    
+    private func calculateFreeStorageSize() -> NSNumber {
+        let documentDirPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
+        if let sysAttributes = try? FileManager.default.attributesOfFileSystem(forPath: documentDirPath.last!) {
+            for val in sysAttributes {
+                print(val)
+            }
+            if let freeStorageSize = sysAttributes[FileAttributeKey.systemFreeSize] as? NSNumber {
+                let freeStorageGigaBytes = freeStorageSize.doubleValue / Double(1024 * 1024 * 1024)
+                return NSNumber(value: round(freeStorageGigaBytes))
+            }
+        }
+        return NSNumber(value:0.0)
+    }
+    
+    private func showFreeStorageSize() {
+        let freeSize = calculateFreeStorageSize()
+        freeStorageLabel.text = "".appendingFormat("%.0fGB", freeSize.doubleValue)
     }
     
     private func reflectUserDefaults() {
@@ -439,9 +471,11 @@ class ViewController: UIViewController {
         filenameFormatter.dateFormat = "yyyy-mm-dd_HH:mm:ss"
         recordButton.backgroundColor = UIColor.red
         
+        
         reflectUserDefaults()
 
         showBleStatus(str: "")
+        showFreeStorageSize()
         setupLocationManager()
         setupBluetooth()
         setupMotionManager()
@@ -509,8 +543,9 @@ extension ViewController: AVCaptureFileOutputRecordingDelegate {
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        
+        print("delegate called")
     }
+    
 }
 
 extension ViewController: CLLocationManagerDelegate {
