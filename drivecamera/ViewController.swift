@@ -242,13 +242,17 @@ class ViewController: UIViewController {
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
         NotificationCenter.default.addObserver(self, selector: #selector(ViewController.batteryLevelChanged(notification:)), name: NSNotification.Name.UIDeviceBatteryLevelDidChange, object: nil)
     }
-    // 録画ボタンの状態変更
-    private func updateButton() {
+    // ボタンの状態変更
+    private func updateButtons() {
+        qualitySegmentedControl.isEnabled = !recordingInProgress
+        autoStartSwitch.isEnabled = !recordingInProgress
+        qualitySegmentedControl.isEnabled = !recordingInProgress
+        audioSwitch.isEnabled = !recordingInProgress
+        
         if recordingInProgress {
             UIView.animateKeyframes(withDuration: 1.5, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
                 self.recordButton.alpha = 0.1
             }, completion: nil)
-
         } else {
             recordButton.layer.removeAllAnimations()
             recordButton.alpha = 1.0
@@ -259,7 +263,7 @@ class ViewController: UIViewController {
     private func stopRecording() {
         fileOutput.stopRecording()
         recordingInProgress = false
-        updateButton()
+        updateButtons()
     }
     
     // 録画開始
@@ -269,7 +273,7 @@ class ViewController: UIViewController {
         let fileURL: URL = URL(fileURLWithPath: filePath)
         recordingInProgress = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
-        updateButton()
+        updateButtons()
     }
     
     // 動画の録画・停止アクション
@@ -447,7 +451,7 @@ class ViewController: UIViewController {
         setupPreviewLayer()
         setupTimestampLayer()
         setupBatteryLevelMonitoring()
-        updateButton()
+        updateButtons()
         startCaptureSession()
     }
 
