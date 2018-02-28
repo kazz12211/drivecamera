@@ -50,6 +50,7 @@ class ViewController: UIViewController {
     var previewLayer: AVCaptureVideoPreviewLayer!
     var timestampLayer: CATextLayer!
     var timestampFormatter: DateFormatter!
+    var filenameFormatter: DateFormatter!
     var speeds: [Double]!
     
     var testSpeed:Double = 0
@@ -76,7 +77,7 @@ class ViewController: UIViewController {
     
 
     // カメラプレビューの設定
-    private func setupPreview() {
+    private func setupPreviewLayer() {
         previewLayer = AVCaptureVideoPreviewLayer(session:captureSession)
         previewLayer.backgroundColor = UIColor.black.cgColor
         previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
@@ -84,6 +85,16 @@ class ViewController: UIViewController {
         previewLayer.frame = previewView.bounds
         previewView.layer.addSublayer(previewLayer)
         
+        
+        let previewLayerConnection: AVCaptureConnection  = previewLayer.connection!
+        previewLayerConnection.videoOrientation = .landscapeRight
+        
+        let composition = AVMutableVideoComposition()
+        composition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: previewLayer, in: previewView.layer)
+        
+    }
+    
+    private func setupTimestampLayer() {
         timestampLayer = CATextLayer()
         timestampLayer.frame = CGRect(x: 4, y: 4, width: 130, height: 20)
         timestampLayer.foregroundColor = UIColor.green.cgColor
@@ -91,23 +102,16 @@ class ViewController: UIViewController {
         timestampLayer.allowsEdgeAntialiasing = true
         timestampLayer.string = timestampFormatter.string(from: Date())
         previewView.layer.addSublayer(timestampLayer)
-                
-        let previewLayerConnection: AVCaptureConnection  = previewLayer.connection!
-        previewLayerConnection.videoOrientation = .landscapeRight
-        
-        let composition = AVMutableVideoComposition()
-        composition.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: previewLayer, in: previewView.layer)
-        
         let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(updateClock), userInfo: nil, repeats: true)
         timer.fire()
-    }
+   }
     
     @objc func updateClock() {
         timestampLayer.string = timestampFormatter.string(from: Date())
     }
     // ビデオキャプチャーの設定
     private func setupCaptureSession() {
-        captureSession.sessionPreset = AVCaptureSession.Preset.hd1280x720
+        captureSession.sessionPreset = videoQualities[videoQuality]
     }
     
     // 入力デバイスの設定
@@ -123,6 +127,8 @@ class ViewController: UIViewController {
          */
         
         videoDevice = devices.first
+        videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+
         
         audioDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInMicrophone, for: AVMediaType.audio, position: AVCaptureDevice.Position.unspecified)
         
@@ -141,22 +147,12 @@ class ViewController: UIViewController {
         }
     }
     
-    // キャプチャーセッションの開始
-    private func startCaptureSession() {
-        captureSession.startRunning()
-    }
-    
-    // キャプチャーセッションの終了
-    private func stopCaptureSession() {
-        captureSession.stopRunning()
-    }
     // 動画録画先の設定
     private func setupVideoOutput() {
         fileOutput = AVCaptureMovieFileOutput()
         if captureSession.canAddOutput(fileOutput) {
             captureSession.addOutput(fileOutput)
         }
-            
         // 保存される動画の向きを設定
         var videoConnection: AVCaptureConnection!
             
@@ -173,6 +169,15 @@ class ViewController: UIViewController {
         }
     }
     
+    // キャプチャーセッションの開始
+    private func startCaptureSession() {
+        captureSession.startRunning()
+    }
+    
+    // キャプチャーセッションの終了
+    private func stopCaptureSession() {
+        captureSession.stopRunning()
+    }
     // 位置情報サービスを開始
     private func setupLocationManager() {
         locationManager.delegate = self
@@ -232,20 +237,13 @@ class ViewController: UIViewController {
     private func stopRecording() {
         fileOutput.stopRecording()
         recordingInProgress = false
-        UISaveVideoAtPathToSavedPhotosAlbum(filePath, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
         updateButton()
     }
     
     // 録画開始
     private func startRecording() {
-        filePath = NSHomeDirectory() + "/Documents/drivecamera_tmp.mp4"
-        if FileManager.default.fileExists(atPath: filePath) {
-            do {
-                try FileManager.default.removeItem(atPath: filePath)
-            } catch let error {
-                print(error)
-            }
-        }
+        let documentPath = NSHomeDirectory() + "/Documents/"
+        filePath = documentPath + filenameFormatter.string(from: Date()) + ".mp4"
         let fileURL: URL = URL(fileURLWithPath: filePath)
         recordingInProgress = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
@@ -309,7 +307,13 @@ class ViewController: UIViewController {
         if error != nil {
             print("video saving error")
         } else {
-            print("video saving success")
+            print("video saving success", videoPath)
+            do {
+                try FileManager.default.removeItem(atPath: videoPath as String)
+                print("video file removed", videoPath)
+            } catch {
+             
+            }
         }
     }
     
@@ -379,6 +383,8 @@ class ViewController: UIViewController {
         recordButton.layer.cornerRadius = 8.0
         timestampFormatter = DateFormatter()
         timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
+        filenameFormatter = DateFormatter()
+        filenameFormatter.dateFormat = "yyyy-mm-dd_HH:mm:ss"
         
         reflectUserDefaults()
 
@@ -389,7 +395,8 @@ class ViewController: UIViewController {
         setupCaptureSession()
         setupCaptureDevice()
         setupVideoOutput()
-        setupPreview()
+        setupPreviewLayer()
+        setupTimestampLayer()
         updateButton()
         startCaptureSession()
     }
@@ -439,10 +446,17 @@ class ViewController: UIViewController {
 
 extension ViewController: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        print("capture finished")
+        print("capture finished", outputFileURL)
+        UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
     }
     
+}
 
+extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        
+    }
 }
 
 extension ViewController: CLLocationManagerDelegate {
