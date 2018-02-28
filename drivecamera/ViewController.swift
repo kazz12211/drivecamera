@@ -34,7 +34,7 @@ class ViewController: UIViewController {
     var speedService: CBService!
     var speedCharacteristic: CBCharacteristic!
     
-    var captureSession: AVCaptureSession!
+    var captureSession: AVCaptureSession = AVCaptureSession()
     var videoDevice: AVCaptureDevice!
     var audioDevice: AVCaptureDevice!
     var videoInput: AVCaptureDeviceInput!
@@ -45,13 +45,36 @@ class ViewController: UIViewController {
     var gsensibility: Double = 2.8
     var autoStartEnabled: Bool = true;
     var autoStopEnabled: Bool = true;
-    
+    var videoQualities: [AVCaptureSession.Preset] = [.hd1280x720, .hd1920x1080]
+    var videoQuality: Int = 0
     var previewLayer: AVCaptureVideoPreviewLayer!
     var timestampLayer: CATextLayer!
     var timestampFormatter: DateFormatter!
+    var speeds: [Double]!
     
     var testSpeed:Double = 0
     
+    struct Constants {
+        static let GSensorSensibilityKey = "GSensor-Sensibility"
+        static let AutoStartEnabledKey = "AutoStartEnabled"
+        static let AutoStopEnabledKey = "AutoStopEnabled"
+        static let VideoQualityKey = "VideoQuality"
+        static let GSensorStrong = 4.0
+        static let GSensorMedium = 2.8
+        static let GSensorWeak = 1.8
+        static let SpeedVerySlow = 5.0
+        static let SpeedSlow = 50.0
+        static let SpeedNormal = 70.0
+        static let SpeedHigh = 100.0
+        static let SpeedVeryHigh = 110.0
+        static let SpeedVerySlowKey = "SpeedVerySlow"
+        static let SpeedSlowKey = "SpeedSlow"
+        static let SpeedNormalKey = "SpeedNormal"
+        static let SpeedHighKey = "SpeedHigh"
+        static let SpeedVeryHighKey = "SpeedVeryHigh"
+    }
+    
+
     // カメラプレビューの設定
     private func setupPreview() {
         previewLayer = AVCaptureVideoPreviewLayer(session:captureSession)
@@ -84,7 +107,6 @@ class ViewController: UIViewController {
     }
     // ビデオキャプチャーの設定
     private func setupCaptureSession() {
-        captureSession = AVCaptureSession()
         captureSession.sessionPreset = AVCaptureSession.Preset.hd1280x720
     }
     
@@ -243,35 +265,44 @@ class ViewController: UIViewController {
     @IBAction func gsensitibityChanged(sender: AnyObject) {
         switch gsensorSegmentedController.selectedSegmentIndex {
         case 0:
-            gsensibility = 4.2
+            gsensibility = Constants.GSensorStrong
             break
         case 1:
-            gsensibility = 2.8
+            gsensibility = Constants.GSensorMedium
             break
         case 2:
-            gsensibility = 1.8
+            gsensibility = Constants.GSensorWeak
             break;
         default:
-            gsensibility = 2.8
+            gsensibility = Constants.GSensorMedium
         }
+        
+        saveUserDefaults()
     }
     
     // 動画品質の設定
     @IBAction func qualityChanged(_ sender: Any) {
         stopCaptureSession()
 
+        videoQuality = 0
         if qualitySegmentedControl.selectedSegmentIndex == 0 {
-            captureSession.sessionPreset = .hd1280x720
+            captureSession.sessionPreset = videoQualities[qualitySegmentedControl.selectedSegmentIndex]
+            videoQuality = qualitySegmentedControl.selectedSegmentIndex
         } else {
-            captureSession.sessionPreset = .hd1920x1080
+            captureSession.sessionPreset = videoQualities[qualitySegmentedControl.selectedSegmentIndex]
+            videoQuality = qualitySegmentedControl.selectedSegmentIndex
         }
 
         startCaptureSession()
+        
+        saveUserDefaults()
     }
     // 自動録画設定アクション
     @IBAction func changeAutoStart(_ sender: Any) {
         autoStartEnabled = autoStartSwitch.isOn
         autoStopEnabled = autoStartEnabled
+        
+        saveUserDefaults()
     }
     
     @objc func video(videoPath: NSString, didFinishSavingWithError error: NSError?, contextInfo info: AnyObject) {
@@ -286,17 +317,70 @@ class ViewController: UIViewController {
         statusLabel.text = str
     }
     
+    private func reflectUserDefaults() {
+        let defaults = UserDefaults.standard
+        gsensibility = defaults.double(forKey: Constants.GSensorSensibilityKey)
+        if(gsensibility == Constants.GSensorWeak) {
+            gsensorSegmentedController.selectedSegmentIndex = 2
+        } else if(gsensibility == Constants.GSensorMedium) {
+            gsensorSegmentedController.selectedSegmentIndex = 1
+        } else if(gsensibility == Constants.GSensorStrong) {
+            gsensorSegmentedController.selectedSegmentIndex = 0
+        }
+        
+        autoStartEnabled = defaults.bool(forKey: Constants.AutoStartEnabledKey)
+        autoStartSwitch.isOn = autoStartEnabled
+
+        autoStopEnabled = defaults.bool(forKey: Constants.AutoStopEnabledKey)
+        
+        qualitySegmentedControl.selectedSegmentIndex = defaults.integer(forKey: Constants.VideoQualityKey)
+        videoQuality = defaults.integer(forKey: Constants.VideoQualityKey)
+        captureSession.sessionPreset = videoQualities[videoQuality]
+        
+        speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
+        if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
+            speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
+        }
+        if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
+        }
+        if defaults.double(forKey: Constants.SpeedNormalKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedNormalKey)
+        }
+        if defaults.double(forKey: Constants.SpeedHighKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedHighKey)
+        }
+        if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedVeryHighKey)
+        }
+    }
+    
+    private func saveUserDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.set(gsensibility, forKey: Constants.GSensorSensibilityKey)
+        defaults.set(autoStartEnabled, forKey: Constants.AutoStartEnabledKey)
+        defaults.set(autoStopEnabled, forKey: Constants.AutoStopEnabledKey)
+        defaults.set(videoQuality, forKey: Constants.VideoQualityKey)
+        defaults.set(speeds[0], forKey: Constants.SpeedVerySlowKey)
+        defaults.set(speeds[1], forKey: Constants.SpeedSlowKey)
+        defaults.set(speeds[2], forKey: Constants.SpeedNormalKey)
+        defaults.set(speeds[3], forKey: Constants.SpeedHighKey)
+        defaults.set(speeds[4], forKey: Constants.SpeedVeryHighKey)
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
         speedLabel.text = "0"
         gsensorSegmentedController.selectedSegmentIndex = 1
-        gsensibility = 2.8
+        gsensibility = Constants.GSensorMedium
         autoStartSwitch.isOn = true
         recordButton.layer.masksToBounds = true
         recordButton.layer.cornerRadius = 8.0
         timestampFormatter = DateFormatter()
         timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
+        
+        reflectUserDefaults()
 
         showBleStatus(str: "")
         setupLocationManager()
@@ -319,16 +403,16 @@ class ViewController: UIViewController {
     func sendSpeed(speed:CLLocationSpeed) {
         speedLabel.text = "".appendingFormat("%.0f", speed)
         
-        if speed < 50 {
+        if speed < speeds[1] {
             meterPanel.backgroundColor = UIColor.black
-        } else if speed < 70 {
+        } else if speed < speeds[2] {
             meterPanel.backgroundColor = UIColor.blue
-        } else if speed < 100 {
+        } else if speed < speeds[3] {
             meterPanel.backgroundColor = UIColor.magenta
         } else {
             meterPanel.backgroundColor = UIColor.red
         }
-        if speed >= 110 {
+        if speed >= speeds[4] {
             startBlinking()
         } else {
             stopBlinking()
@@ -389,7 +473,7 @@ extension ViewController: CLLocationManagerDelegate {
          }
          */
         // 時速５キロを超えたら録画を自動的に開始する
-        if(speed > 5.0 && !recordingInProgress && autoStartEnabled) {
+        if(speed > speeds[0] && !recordingInProgress && autoStartEnabled) {
             startRecording()
         }
     }
