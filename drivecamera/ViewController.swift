@@ -57,7 +57,7 @@ class ViewController: UIViewController {
     var speeds: [Double]!
     var recordAudio: Bool = true
     
-    var testSpeed:Double = 0
+    var testSpeed:Double = 10
     
     struct Constants {
         static let GSensorSensibilityKey = "GSensor-Sensibility"
@@ -238,7 +238,7 @@ class ViewController: UIViewController {
                     return
                 }
                 if fabs(data.acceleration.y) > self.gsensibility || fabs(data.acceleration.z) > self.gsensibility {
-                    print("".appendingFormat("x = %.4f, y = %.4f, z = %.4f", data.acceleration.x, data.acceleration.y, data.acceleration.z))
+                    //print("".appendingFormat("x = %.4f, y = %.4f, z = %.4f", data.acceleration.x, data.acceleration.y, data.acceleration.z))
                     if !self.recordingInProgress {
                         self.startRecording()
                     }
@@ -385,9 +385,11 @@ class ViewController: UIViewController {
     private func calculateFreeStorageSize() -> NSNumber {
         let documentDirPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
         if let sysAttributes = try? FileManager.default.attributesOfFileSystem(forPath: documentDirPath.last!) {
+            /*
             for val in sysAttributes {
                 print(val)
             }
+             */
             if let freeStorageSize = sysAttributes[FileAttributeKey.systemFreeSize] as? NSNumber {
                 let freeStorageGigaBytes = freeStorageSize.doubleValue / Double(1024 * 1024 * 1024)
                 return NSNumber(value: round(freeStorageGigaBytes))
@@ -534,7 +536,7 @@ class ViewController: UIViewController {
 
 extension ViewController: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        print("capture finished", outputFileURL)
+        //print("capture finished", outputFileURL)
         UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
     }
     
@@ -568,9 +570,9 @@ extension ViewController: CLLocationManagerDelegate {
         
         sendSpeed(speed:speed)
         /*
-         sendSpeed(speed:testSpeed)
+        sendSpeed(speed:testSpeed)
          if testSpeed > 130 {
-            testSpeed = 60
+            testSpeed = 20
          } else {
             testSpeed += 10.0
          }
@@ -624,6 +626,7 @@ extension ViewController: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         for service in peripheral.services! {
             if service.uuid.uuidString == "6E400001-B5A3-F393-E0A9-E50E24DCCA9F" {
+                showBleStatus(str: "Engaged")
                 speedService = service
                 speedmeterPeripheral.discoverCharacteristics(nil, for: speedService)
                 break
