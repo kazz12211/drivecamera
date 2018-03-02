@@ -12,12 +12,18 @@ import AVFoundation
 class PlayListViewController: UIViewController {
 
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var closeButton: UIButton!
     
     var videoFiles: [URL] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         definesPresentationContext = true
+        closeButton.layer.masksToBounds = true
+        closeButton.layer.cornerRadius = 25
+        closeButton.layer.opacity = 0.4
+        closeButton.backgroundColor = UIColor.black
+        closeButton.tintColor = UIColor.white
         listVideoFiles()
     }
 
@@ -30,6 +36,7 @@ class PlayListViewController: UIViewController {
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: FileManager.DirectoryEnumerationOptions.skipsSubdirectoryDescendants)
+            videoFiles = []
             for fileURL in fileURLs {
                 if fileURL.lastPathComponent.hasPrefix("dc-") && fileURL.lastPathComponent.hasSuffix(".mp4") {
                     videoFiles.append(fileURL)

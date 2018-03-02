@@ -17,7 +17,6 @@ class ViewController: UIViewController {
     @IBOutlet weak var meterPanel: UIView!
     @IBOutlet weak var previewView: UIView!
     @IBOutlet weak var gsensorSegmentedController: UISegmentedControl!
-    @IBOutlet weak var statusLabel: UILabel!
     @IBOutlet weak var recordButton: UIButton!
     @IBOutlet weak var speedLabel: UILabel!
     @IBOutlet weak var autoStartSwitch: UISwitch!
@@ -29,6 +28,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var audioSwitch: UISwitch!
     @IBOutlet weak var videoListButton: UIButton!
     @IBOutlet weak var freeStorageLabel: UILabel!
+    @IBOutlet weak var bleStatusView: UIView!
     
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
@@ -373,9 +373,6 @@ class ViewController: UIViewController {
         }
     }
     
-    @IBAction func showVideoList(_ sender: Any) {
-    }
-    
     @objc func batteryLevelChanged(notification: NSNotification)  {
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
     }
@@ -384,8 +381,35 @@ class ViewController: UIViewController {
         batteryLevelLabel.text = "".appendingFormat("%.0f%%", batteryLevel * 100)
     }
     
-    private func showBleStatus(str:String) {
-        statusLabel.text = str
+    private func showBleStatus(status:Int) {
+        bleStatusView.layer.removeAllAnimations()
+        bleStatusView.alpha = 1.0
+        
+        switch status {
+        case 0:
+            bleStatusView.backgroundColor = UIColor.black
+            break
+        case 1: // scanning
+            bleStatusView.backgroundColor = UIColor.green
+            UIView.animateKeyframes(withDuration: 0.6, delay: 0.0, options: UIViewKeyframeAnimationOptions.repeat, animations: {
+                self.bleStatusView.alpha = 0
+            }, completion: nil)
+            break
+        case 2: // connecting
+            bleStatusView.backgroundColor = UIColor.blue
+            UIView.animateKeyframes(withDuration: 0.6, delay: 0.0, options: UIViewKeyframeAnimationOptions.repeat, animations: {
+                self.bleStatusView.alpha = 0
+            }, completion: nil)
+            break
+        case 3: // connected
+            bleStatusView.backgroundColor = UIColor.yellow
+            break
+        case 4: // engaged
+            bleStatusView.backgroundColor = UIColor.orange
+            break
+        default:
+            break
+        }
     }
     
     private func calculateFreeStorageSize() -> NSNumber {
@@ -464,6 +488,13 @@ class ViewController: UIViewController {
         defaults.set(recordAudio, forKey: Constants.RecordAudioKey)
     }
     
+    private func setupBleStatusView() {
+        bleStatusView.layer.masksToBounds = true
+        bleStatusView.layer.cornerRadius = 5
+        bleStatusView.layer.opacity = 1
+        bleStatusView.backgroundColor = UIColor.white
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -482,8 +513,9 @@ class ViewController: UIViewController {
         
         reflectUserDefaults()
 
-        showBleStatus(str: "")
         showFreeStorageSize()
+        setupBleStatusView()
+        showBleStatus(status: 0)
         setupLocationManager()
         setupBluetooth()
         setupMotionManager()
@@ -603,7 +635,7 @@ extension ViewController: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
-            showBleStatus(str: "Scanning")
+            showBleStatus(status: 1)
             centralManager.scanForPeripherals(withServices: nil, options: nil)
         default:
             print(central.state)
@@ -615,19 +647,19 @@ extension ViewController: CBCentralManagerDelegate {
         if localName == "Speedmeter" {
             central.stopScan()
             speedmeterPeripheral = peripheral
-            showBleStatus(str: "Connecting")
+            showBleStatus(status: 2)
             central.connect(speedmeterPeripheral, options: nil)
         }
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        showBleStatus(str: "Connected")
+        showBleStatus(status: 3)
         speedmeterPeripheral.delegate = self
         speedmeterPeripheral.discoverServices(nil)
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        showBleStatus(str: "Scanning")
+        showBleStatus(status: 1)
         speedmeterPeripheral = nil
         speedCharacteristic = nil
         centralManager.scanForPeripherals(withServices: nil, options: nil)
@@ -640,7 +672,7 @@ extension ViewController: CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         for service in peripheral.services! {
             if service.uuid.uuidString == "6E400001-B5A3-F393-E0A9-E50E24DCCA9F" {
-                showBleStatus(str: "Engaged")
+                showBleStatus(status: 4)
                 speedService = service
                 speedmeterPeripheral.discoverCharacteristics(nil, for: speedService)
                 break

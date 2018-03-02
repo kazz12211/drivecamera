@@ -12,6 +12,8 @@ import AVFoundation
 class PlayerViewController: UIViewController {
 
     @IBOutlet weak var playerView: PlayerView!
+    @IBOutlet weak var closeButton: UIButton!
+    @IBOutlet weak var exportButton: UIButton!
     
     var videoURL: URL!
     var videoAsset: AVAsset!
@@ -55,11 +57,30 @@ class PlayerViewController: UIViewController {
         startButton.layer.masksToBounds = true
         startButton.layer.cornerRadius = 25
         startButton.layer.opacity = 0.4
-        startButton.backgroundColor = UIColor.blue
         startButton.tintColor = UIColor.white
-        startButton.setImage(UIImage(named: "play"), for: UIControlState.normal)
+        startButton.showsTouchWhenHighlighted = true
         startButton.addTarget(self, action: #selector(playButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
         view.addSubview(startButton)
+        
+        closeButton.layer.masksToBounds = true
+        closeButton.layer.cornerRadius = 25
+        closeButton.layer.opacity = 0.4
+        closeButton.backgroundColor = UIColor.black
+        closeButton.tintColor = UIColor.white
+        
+        exportButton.layer.masksToBounds = true
+        exportButton.layer.cornerRadius = 25
+        exportButton.layer.opacity = 0.4
+        exportButton.backgroundColor = UIColor.black
+        exportButton.tintColor = UIColor.white
+
+        NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying(notif:)), name: Notification.Name.AVPlayerItemDidPlayToEndTime, object: videoPlayer.currentItem)
+        pauseVideo()
+    }
+    
+    @objc func playerDidFinishPlaying(notif: Notification) {
+        pauseVideo()
+        rewindVideoToStart()
     }
     
     @objc func playButtonClicked(sender: UIButton) {
@@ -76,14 +97,20 @@ class PlayerViewController: UIViewController {
     
     private func playVideo() {
         videoPlayer.play()
+        startButton.setImage(UIImage(named: "icon_pause"), for: UIControlState.normal)
         startButton.backgroundColor = UIColor.red
         startButton.addTarget(self, action: #selector(stopButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
     }
     private func pauseVideo() {
         videoPlayer.pause()
+        startButton.setImage(UIImage(named: "icon_play"), for: UIControlState.normal)
         startButton.backgroundColor = UIColor.blue
         startButton.addTarget(self, action: #selector(playButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
-   }
+    }
+    
+    private func rewindVideoToStart() {
+        videoPlayer.seek(to: CMTimeMakeWithSeconds(Float64(0), Int32(NSEC_PER_SEC)))
+    }
     
     func setVideoURL(url: URL) {
         videoURL = url
@@ -101,3 +128,5 @@ class PlayerViewController: UIViewController {
         present(av, animated: true, completion: nil)
     }
 }
+
+
