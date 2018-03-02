@@ -13,6 +13,7 @@ class PlayerViewController: UIViewController {
 
     @IBOutlet weak var playerView: PlayerView!
     
+    var videoURL: URL!
     var videoAsset: AVAsset!
     var playerItem : AVPlayerItem!
     var videoPlayer: AVPlayer!
@@ -63,14 +64,10 @@ class PlayerViewController: UIViewController {
     
     @objc func playButtonClicked(sender: UIButton) {
         playVideo()
-        startButton.backgroundColor = UIColor.red
-        startButton.addTarget(self, action: #selector(stopButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
     }
     
     @objc func stopButtonClicked(sender: UIButton) {
         pauseVideo()
-        startButton.backgroundColor = UIColor.blue
-        startButton.addTarget(self, action: #selector(playButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
     }
     
     @objc func seekSliderValueChanged(sender: UISlider) {
@@ -79,14 +76,19 @@ class PlayerViewController: UIViewController {
     
     private func playVideo() {
         videoPlayer.play()
+        startButton.backgroundColor = UIColor.red
+        startButton.addTarget(self, action: #selector(stopButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
     }
     private func pauseVideo() {
         videoPlayer.pause()
-    }
+        startButton.backgroundColor = UIColor.blue
+        startButton.addTarget(self, action: #selector(playButtonClicked(sender:)), for: UIControlEvents.touchUpInside)
+   }
     
-    func setAsset(asset: AVAsset) {
-        videoAsset = asset
-    }
+    func setVideoURL(url: URL) {
+        videoURL = url
+        videoAsset = AVAsset(url:videoURL)
+   }
 
     @IBAction func close(_ sender: Any) {
         pauseVideo()
@@ -94,5 +96,8 @@ class PlayerViewController: UIViewController {
     }
     
     @IBAction func export(_ sender: Any) {
+        pauseVideo()
+        let av = UIActivityViewController(activityItems: [videoURL], applicationActivities: nil)
+        present(av, animated: true, completion: nil)
     }
 }

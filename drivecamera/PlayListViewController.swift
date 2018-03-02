@@ -66,7 +66,7 @@ extension PlayListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let viewController = storyboard?.instantiateViewController(withIdentifier: "player") as! PlayerViewController
         let url = videoFiles[indexPath.row]
-        viewController.setAsset(asset:AVAsset(url:url))
+        viewController.setVideoURL(url: url)
         let nav = UINavigationController(rootViewController: viewController)
         present(nav, animated: true, completion: nil)
     }
