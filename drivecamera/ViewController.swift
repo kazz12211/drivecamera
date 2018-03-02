@@ -27,6 +27,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var batteryLevelLabel: UILabel!
     @IBOutlet weak var qualitySegmentedControl: UISegmentedControl!
     @IBOutlet weak var audioSwitch: UISwitch!
+    @IBOutlet weak var videoListButton: UIButton!
     @IBOutlet weak var freeStorageLabel: UILabel!
     
     let locationManager = CLLocationManager()
@@ -110,6 +111,10 @@ class ViewController: UIViewController {
         let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(ViewController.updateClock), userInfo: nil, repeats: true)
         timer.fire()
    }
+    @objc func restartRecording() {
+        stopRecording()
+        startRecording()
+    }
     
     @objc func updateClock() {
         timestampLayer.string = timestampFormatter.string(from: Date())
@@ -187,17 +192,6 @@ class ViewController: UIViewController {
         if videoConnection.isVideoOrientationSupported {
             videoConnection.videoOrientation = AVCaptureVideoOrientation.landscapeRight
         }
-        
-        /*
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        let queue = DispatchQueue(label: "drivecamera")
-        videoOutput.setSampleBufferDelegate(self, queue: queue)
-        if captureSession.canAddOutput(videoOutput) {
-            captureSession.addOutput(videoOutput)
-        }
-         */
     }
     
     // キャプチャーセッションの開始
@@ -241,6 +235,10 @@ class ViewController: UIViewController {
                     //print("".appendingFormat("x = %.4f, y = %.4f, z = %.4f", data.acceleration.x, data.acceleration.y, data.acceleration.z))
                     if !self.recordingInProgress {
                         self.startRecording()
+                    } else {
+                        // 録画中に衝撃を受けたら１０秒後一旦録画を停止して新しい動画の録画を始める
+                        let timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(ViewController.restartRecording), userInfo: nil, repeats: false)
+                        timer.fire()
                     }
                 }
             });
@@ -254,10 +252,12 @@ class ViewController: UIViewController {
     }
     // ボタンの状態変更
     private func updateButtons() {
+        gsensorSegmentedController.isEnabled = !recordingInProgress
         qualitySegmentedControl.isEnabled = !recordingInProgress
         autoStartSwitch.isEnabled = !recordingInProgress
         qualitySegmentedControl.isEnabled = !recordingInProgress
         audioSwitch.isEnabled = !recordingInProgress
+        videoListButton.isEnabled = !recordingInProgress
         
         if recordingInProgress {
             UIView.animateKeyframes(withDuration: 1.5, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
@@ -279,7 +279,8 @@ class ViewController: UIViewController {
     // 録画開始
     private func startRecording() {
         let documentPath = NSHomeDirectory() + "/Documents/"
-        filePath = documentPath + filenameFormatter.string(from: Date()) + ".mp4"
+        let prefix = "dc-"
+        filePath = documentPath + prefix + filenameFormatter.string(from: Date()) + ".mp4"
         let fileURL: URL = URL(fileURLWithPath: filePath)
         recordingInProgress = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
@@ -361,13 +362,18 @@ class ViewController: UIViewController {
             print("video saving error")
         } else {
             print("video saving success", videoPath)
+            /*
             do {
                 try FileManager.default.removeItem(atPath: videoPath as String)
                 print("video file removed", videoPath)
             } catch {
              
             }
+            */
         }
+    }
+    
+    @IBAction func showVideoList(_ sender: Any) {
     }
     
     @objc func batteryLevelChanged(notification: NSNotification)  {
@@ -470,7 +476,7 @@ class ViewController: UIViewController {
         timestampFormatter = DateFormatter()
         timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
         filenameFormatter = DateFormatter()
-        filenameFormatter.dateFormat = "yyyy-mm-dd_HH:mm:ss"
+        filenameFormatter.dateFormat = "yyyyMMdd_HHmmss"
         recordButton.backgroundColor = UIColor.red
         
         
@@ -488,9 +494,17 @@ class ViewController: UIViewController {
         setupTimestampLayer()
         setupBatteryLevelMonitoring()
         updateButtons()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         startCaptureSession()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        stopCaptureSession()
+    }
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.

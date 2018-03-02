@@ -18,6 +18,10 @@
 		F83303772042DF0300520B57 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F83303752042DF0300520B57 /* AVFoundation.framework */; };
 		F833037A2042DF1F00520B57 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F83303782042DF1E00520B57 /* CoreMotion.framework */; };
 		F833037B2042DF1F00520B57 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F83303792042DF1E00520B57 /* CoreBluetooth.framework */; };
+		F836A2B220483E44007A66EB /* PlayListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F836A2B120483E44007A66EB /* PlayListViewController.swift */; };
+		F836A2B42048561F007A66EB /* PlayListCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = F836A2B32048561F007A66EB /* PlayListCell.swift */; };
+		F839B34220492055004B4D9D /* PlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F839B34120492055004B4D9D /* PlayerViewController.swift */; };
+		F839B344204920C4004B4D9D /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F839B343204920C4004B4D9D /* PlayerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +38,10 @@
 		F83303752042DF0300520B57 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		F83303782042DF1E00520B57 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		F83303792042DF1E00520B57 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		F836A2B120483E44007A66EB /* PlayListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayListViewController.swift; sourceTree = "<group>"; };
+		F836A2B32048561F007A66EB /* PlayListCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayListCell.swift; sourceTree = "<group>"; };
+		F839B34120492055004B4D9D /* PlayerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewController.swift; sourceTree = "<group>"; };
+		F839B343204920C4004B4D9D /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +87,10 @@
 				F83303642042DEA500520B57 /* Assets.xcassets */,
 				F83303662042DEA500520B57 /* LaunchScreen.storyboard */,
 				F83303692042DEA500520B57 /* Info.plist */,
+				F836A2B120483E44007A66EB /* PlayListViewController.swift */,
+				F836A2B32048561F007A66EB /* PlayListCell.swift */,
+				F839B34120492055004B4D9D /* PlayerViewController.swift */,
+				F839B343204920C4004B4D9D /* PlayerView.swift */,
 			);
 			path = drivecamera;
 			sourceTree = "<group>";
@@ -175,6 +187,10 @@
 			files = (
 				F83303602042DEA500520B57 /* ViewController.swift in Sources */,
 				F833035E2042DEA500520B57 /* AppDelegate.swift in Sources */,
+				F836A2B220483E44007A66EB /* PlayListViewController.swift in Sources */,
+				F839B344204920C4004B4D9D /* PlayerView.swift in Sources */,
+				F836A2B42048561F007A66EB /* PlayListCell.swift in Sources */,
+				F839B34220492055004B4D9D /* PlayerViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
