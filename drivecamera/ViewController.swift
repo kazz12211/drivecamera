@@ -357,21 +357,21 @@ class ViewController: UIViewController {
         saveUserDefaults()
     }
     
+    /*
     @objc func video(videoPath: NSString, didFinishSavingWithError error: NSError?, contextInfo info: AnyObject) {
         if error != nil {
             print("video saving error")
         } else {
             print("video saving success", videoPath)
-            /*
             do {
                 try FileManager.default.removeItem(atPath: videoPath as String)
                 print("video file removed", videoPath)
             } catch {
              
             }
-            */
         }
     }
+    */
     
     @objc func batteryLevelChanged(notification: NSNotification)  {
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
@@ -583,7 +583,7 @@ class ViewController: UIViewController {
 extension ViewController: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         //print("capture finished", outputFileURL)
-        UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
+        //UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
     }
     
 }
