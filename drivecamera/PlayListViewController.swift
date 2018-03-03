@@ -13,8 +13,10 @@ class PlayListViewController: UIViewController {
 
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var closeButton: UIButton!
+    @IBOutlet weak var viewSwitchSegmentedControl: UISegmentedControl!
     
     var videoFiles: [URL] = []
+    var logFiles: [URL] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,22 +26,63 @@ class PlayListViewController: UIViewController {
         closeButton.layer.opacity = 0.4
         closeButton.backgroundColor = UIColor.black
         closeButton.tintColor = UIColor.white
-        listVideoFiles()
+        viewSwitchSegmentedControl.selectedSegmentIndex = 0
+        showVideos()
     }
 
+    private func showVideos() {
+        listVideoFiles()
+        tableView.reloadData()
+    }
+    
+    private func showLogs() {
+        listLogFiles()
+        tableView.reloadData()
+    }
+    
     @IBAction func closePlayList(_ sender: Any) {
         dismiss(animated: true, completion: nil)
+    }
+    
+    @IBAction func viewSwitchChanged(_ sender: Any) {
+        switch viewSwitchSegmentedControl.selectedSegmentIndex {
+        case 0:
+            showVideos()
+            break
+        case 1:
+            showLogs()
+            break
+        default:
+            showVideos()
+            break
+        }
     }
     
     private func listVideoFiles() -> Void {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        videoFiles = []
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: FileManager.DirectoryEnumerationOptions.skipsSubdirectoryDescendants)
-            videoFiles = []
             for fileURL in fileURLs {
                 if fileURL.lastPathComponent.hasPrefix("dc-") && fileURL.lastPathComponent.hasSuffix(".mp4") {
                     videoFiles.append(fileURL)
+                }
+            }
+        } catch {
+            print("Error while enumerating files \(documentsURL.path): \(error.localizedDescription)")
+        }
+    }
+    
+    private func listLogFiles() -> Void {
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        logFiles = []
+        do {
+            let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: FileManager.DirectoryEnumerationOptions.skipsSubdirectoryDescendants)
+            for fileURL in fileURLs {
+                if fileURL.lastPathComponent.hasPrefix("log-") && fileURL.lastPathComponent.hasSuffix(".csv") {
+                    logFiles.append(fileURL)
                 }
             }
         } catch {
@@ -50,7 +93,11 @@ class PlayListViewController: UIViewController {
 
 extension PlayListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 64
+        if viewSwitchSegmentedControl.selectedSegmentIndex == 0 {
+            return 64
+        } else {
+            return 40
+        }
     }
     
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
@@ -59,37 +106,66 @@ extension PlayListViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == UITableViewCellEditingStyle.delete {
-            let url = videoFiles[indexPath.row]
-            do {
-                try FileManager.default.removeItem(at: url)
-            } catch {
-                print("Error removing ", url)
+            if viewSwitchSegmentedControl.selectedSegmentIndex == 0 {
+                let url = videoFiles[indexPath.row]
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    print("Error removing ", url)
+                }
+                videoFiles.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: UITableViewRowAnimation.automatic)
+            } else {
+                let url = logFiles[indexPath.row]
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    print("Error removing", url)
+                }
+                logFiles.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: UITableViewRowAnimation.automatic)
             }
-            videoFiles.remove(at: indexPath.row)
-            tableView.deleteRows(at: [indexPath], with: UITableViewRowAnimation.automatic)
         }
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let viewController = storyboard?.instantiateViewController(withIdentifier: "player") as! PlayerViewController
-        let url = videoFiles[indexPath.row]
-        viewController.setVideoURL(url: url)
-        let nav = UINavigationController(rootViewController: viewController)
-        present(nav, animated: true, completion: nil)
+        if viewSwitchSegmentedControl.selectedSegmentIndex == 0 {
+            let viewController = storyboard?.instantiateViewController(withIdentifier: "player") as! PlayerViewController
+            let url = videoFiles[indexPath.row]
+            viewController.setVideoURL(url: url)
+            let nav = UINavigationController(rootViewController: viewController)
+            present(nav, animated: true, completion: nil)
+        } else {
+            let viewController = storyboard?.instantiateViewController(withIdentifier: "map") as! LogMapViewController
+            let url = logFiles[indexPath.row]
+            viewController.setLogURL(url: url)
+            let nav = UINavigationController(rootViewController: viewController)
+            present(nav, animated: true, completion: nil)
+        }
     }
 }
 
 extension PlayListViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return videoFiles.count
+        if viewSwitchSegmentedControl.selectedSegmentIndex == 0 {
+            return videoFiles.count
+        } else {
+            return logFiles.count
+        }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell: PlayListCell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath) as! PlayListCell
-        let url = videoFiles[indexPath.row]
-        cell.setURL(url: url)
-        return cell
+        if viewSwitchSegmentedControl.selectedSegmentIndex == 0 {
+            let cell: PlayListCell = tableView.dequeueReusableCell(withIdentifier: "VideoCell", for: indexPath) as! PlayListCell
+            let url = videoFiles[indexPath.row]
+            cell.setURL(url: url)
+            return cell
+        } else {
+            let cell: UITableViewCell = UITableViewCell(style: UITableViewCellStyle.default, reuseIdentifier: "LogCell")
+            cell.textLabel?.text = logFiles[indexPath.row].lastPathComponent
+            return cell
+        }
     }
     
 }

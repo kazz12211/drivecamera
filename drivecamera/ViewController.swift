@@ -29,6 +29,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var videoListButton: UIButton!
     @IBOutlet weak var freeStorageLabel: UILabel!
     @IBOutlet weak var bleStatusView: UIView!
+    @IBOutlet weak var gpsLogSwitch: UISwitch!
     
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
@@ -57,6 +58,9 @@ class ViewController: UIViewController {
     var filenameFormatter: DateFormatter!
     var speeds: [Double]!
     var recordAudio: Bool = true
+    var gpsLogging: Bool = false
+    var logFilePath: String!
+    var logWriter: GPSLogWriter!
     
     var testSpeed:Double = 10
     
@@ -68,7 +72,7 @@ class ViewController: UIViewController {
         static let GSensorStrong = 4.0
         static let GSensorMedium = 2.8
         static let GSensorWeak = 1.8
-        static let SpeedVerySlow = 5.0
+        static let SpeedVerySlow = 10.0
         static let SpeedSlow = 50.0
         static let SpeedNormal = 70.0
         static let SpeedHigh = 100.0
@@ -79,6 +83,7 @@ class ViewController: UIViewController {
         static let SpeedHighKey = "SpeedHigh"
         static let SpeedVeryHighKey = "SpeedVeryHigh"
         static let RecordAudioKey = "RecordAudio"
+        static let GPSLogEnabledKey = "GPSLogEnabled"
     }
     
 
@@ -258,6 +263,7 @@ class ViewController: UIViewController {
         qualitySegmentedControl.isEnabled = !recordingInProgress
         audioSwitch.isEnabled = !recordingInProgress
         videoListButton.isEnabled = !recordingInProgress
+        gpsLogSwitch.isEnabled = !recordingInProgress
         
         if recordingInProgress {
             UIView.animateKeyframes(withDuration: 1.5, delay: 0.0, options: [.repeat ,.allowUserInteraction], animations: {
@@ -273,17 +279,31 @@ class ViewController: UIViewController {
     private func stopRecording() {
         fileOutput.stopRecording()
         recordingInProgress = false
+
+        if gpsLogging {
+            logWriter.stop()
+        }
+
         updateButtons()
     }
     
     // 録画開始
     private func startRecording() {
         let documentPath = NSHomeDirectory() + "/Documents/"
-        let prefix = "dc-"
-        filePath = documentPath + prefix + filenameFormatter.string(from: Date()) + ".mp4"
+        let date = Date()
+        filePath = documentPath + "dc-" + filenameFormatter.string(from: date) + ".mp4"
         let fileURL: URL = URL(fileURLWithPath: filePath)
         recordingInProgress = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
+
+        if gpsLogging {
+            logFilePath = documentPath + "log-" + filenameFormatter.string(from: date) + ".csv"
+            logWriter = GPSLogWriter(path:logFilePath)
+            logWriter.start()
+        } else {
+            logFilePath = nil
+        }
+
         updateButtons()
     }
     
@@ -354,6 +374,11 @@ class ViewController: UIViewController {
         
         startCaptureSession()
 
+        saveUserDefaults()
+    }
+    
+    @IBAction func gpsLogChanged(_ sender: Any) {
+        gpsLogging = gpsLogSwitch.isOn
         saveUserDefaults()
     }
     
@@ -456,6 +481,9 @@ class ViewController: UIViewController {
         speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
         if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
             speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
+            if speeds[0] < Constants.SpeedVerySlow {
+                speeds[0] = Constants.SpeedVerySlow
+            }
         }
         if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
             speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
@@ -472,6 +500,9 @@ class ViewController: UIViewController {
         
         recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
         audioSwitch.isOn = recordAudio
+        
+        gpsLogging = defaults.bool(forKey: Constants.GPSLogEnabledKey)
+        gpsLogSwitch.isOn = gpsLogging
     }
     
     private func saveUserDefaults() {
@@ -486,6 +517,7 @@ class ViewController: UIViewController {
         defaults.set(speeds[3], forKey: Constants.SpeedHighKey)
         defaults.set(speeds[4], forKey: Constants.SpeedVeryHighKey)
         defaults.set(recordAudio, forKey: Constants.RecordAudioKey)
+        defaults.set(gpsLogging, forKey: Constants.GPSLogEnabledKey)
     }
     
     private func setupBleStatusView() {
@@ -578,6 +610,10 @@ class ViewController: UIViewController {
         meterPanel.layer.removeAllAnimations()
         meterPanel.alpha = 1.0
     }
+    
+    private func logGPS(timestamp: Date, altitude: Double, latitude: Double, longitude: Double) {
+        logWriter.record(timestamp: timestamp, latitude: latitude, longitude: longitude, altitude: altitude)
+    }
 }
 
 extension ViewController: AVCaptureFileOutputRecordingDelegate {
@@ -624,8 +660,12 @@ extension ViewController: CLLocationManagerDelegate {
          }
          */
         // 時速５キロを超えたら録画を自動的に開始する
-        if(speed > speeds[0] && !recordingInProgress && autoStartEnabled) {
+        if speed > speeds[0] && !recordingInProgress && autoStartEnabled {
             startRecording()
+        }
+        
+        if recordingInProgress && gpsLogging {
+            logGPS(timestamp: Date(), altitude: altitude, latitude: latitude, longitude: longitude)
         }
     }
 

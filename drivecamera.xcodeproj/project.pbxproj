@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F831EAB8204A5F610091CABD /* GPSLogWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F831EAB7204A5F610091CABD /* GPSLogWriter.swift */; };
+		F831EABA204AB63C0091CABD /* LogMapViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F831EAB9204AB63C0091CABD /* LogMapViewController.swift */; };
 		F833035E2042DEA500520B57 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F833035D2042DEA500520B57 /* AppDelegate.swift */; };
 		F83303602042DEA500520B57 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F833035F2042DEA500520B57 /* ViewController.swift */; };
 		F83303632042DEA500520B57 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F83303612042DEA500520B57 /* Main.storyboard */; };
@@ -25,6 +27,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F831EAB7204A5F610091CABD /* GPSLogWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSLogWriter.swift; sourceTree = "<group>"; };
+		F831EAB9204AB63C0091CABD /* LogMapViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogMapViewController.swift; sourceTree = "<group>"; };
 		F833035A2042DEA500520B57 /* drivecamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drivecamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F833035D2042DEA500520B57 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F833035F2042DEA500520B57 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -91,6 +95,8 @@
 				F836A2B32048561F007A66EB /* PlayListCell.swift */,
 				F839B34120492055004B4D9D /* PlayerViewController.swift */,
 				F839B343204920C4004B4D9D /* PlayerView.swift */,
+				F831EAB7204A5F610091CABD /* GPSLogWriter.swift */,
+				F831EAB9204AB63C0091CABD /* LogMapViewController.swift */,
 			);
 			path = drivecamera;
 			sourceTree = "<group>";
@@ -185,9 +191,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F831EAB8204A5F610091CABD /* GPSLogWriter.swift in Sources */,
 				F83303602042DEA500520B57 /* ViewController.swift in Sources */,
 				F833035E2042DEA500520B57 /* AppDelegate.swift in Sources */,
 				F836A2B220483E44007A66EB /* PlayListViewController.swift in Sources */,
+				F831EABA204AB63C0091CABD /* LogMapViewController.swift in Sources */,
 				F839B344204920C4004B4D9D /* PlayerView.swift in Sources */,
 				F836A2B42048561F007A66EB /* PlayListCell.swift in Sources */,
 				F839B34220492055004B4D9D /* PlayerViewController.swift in Sources */,
