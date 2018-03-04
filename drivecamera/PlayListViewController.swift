@@ -17,6 +17,7 @@ class PlayListViewController: UIViewController {
     
     var videoFiles: [URL] = []
     var logFiles: [URL] = []
+    var filename: FilenameUtil = FilenameUtil()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -65,7 +66,7 @@ class PlayListViewController: UIViewController {
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: FileManager.DirectoryEnumerationOptions.skipsSubdirectoryDescendants)
             for fileURL in fileURLs {
-                if fileURL.lastPathComponent.hasPrefix("dc-") && fileURL.lastPathComponent.hasSuffix(".mp4") {
+                if fileURL.lastPathComponent.hasSuffix(".mp4") {
                     videoFiles.append(fileURL)
                 }
             }
@@ -81,7 +82,7 @@ class PlayListViewController: UIViewController {
         do {
             let fileURLs = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: FileManager.DirectoryEnumerationOptions.skipsSubdirectoryDescendants)
             for fileURL in fileURLs {
-                if fileURL.lastPathComponent.hasPrefix("log-") && fileURL.lastPathComponent.hasSuffix(".csv") {
+                if fileURL.lastPathComponent.hasSuffix(".csv") {
                     logFiles.append(fileURL)
                 }
             }
@@ -163,7 +164,10 @@ extension PlayListViewController: UITableViewDataSource {
             return cell
         } else {
             let cell: UITableViewCell = UITableViewCell(style: UITableViewCellStyle.default, reuseIdentifier: "LogCell")
-            cell.textLabel?.text = logFiles[indexPath.row].lastPathComponent
+            let name = logFiles[indexPath.row].lastPathComponent
+            let fn = String(name[name.index(name.startIndex, offsetBy: 0)...name.index(name.endIndex, offsetBy: -5)])
+            let ts = filename.date(fromFilename: fn)
+            cell.textLabel?.text = filename.timestamp(from: ts)
             return cell
         }
     }

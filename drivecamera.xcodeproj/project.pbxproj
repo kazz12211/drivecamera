@@ -24,6 +24,9 @@
 		F836A2B42048561F007A66EB /* PlayListCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = F836A2B32048561F007A66EB /* PlayListCell.swift */; };
 		F839B34220492055004B4D9D /* PlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F839B34120492055004B4D9D /* PlayerViewController.swift */; };
 		F839B344204920C4004B4D9D /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F839B343204920C4004B4D9D /* PlayerView.swift */; };
+		F8FDACAB204BAF5900DE5E13 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8FDACAA204BAF5900DE5E13 /* Constants.swift */; };
+		F8FDACAF204BC05700DE5E13 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F8FDACAE204BC05700DE5E13 /* Photos.framework */; };
+		F8FDACB1204BCA2800DE5E13 /* FilenameUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8FDACB0204BCA2800DE5E13 /* FilenameUtil.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +49,9 @@
 		F836A2B32048561F007A66EB /* PlayListCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayListCell.swift; sourceTree = "<group>"; };
 		F839B34120492055004B4D9D /* PlayerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewController.swift; sourceTree = "<group>"; };
 		F839B343204920C4004B4D9D /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		F8FDACAA204BAF5900DE5E13 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		F8FDACAE204BC05700DE5E13 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
+		F8FDACB0204BCA2800DE5E13 /* FilenameUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilenameUtil.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8FDACAF204BC05700DE5E13 /* Photos.framework in Frameworks */,
 				F833037A2042DF1F00520B57 /* CoreMotion.framework in Frameworks */,
 				F833037B2042DF1F00520B57 /* CoreBluetooth.framework in Frameworks */,
 				F83303762042DF0300520B57 /* AVKit.framework in Frameworks */,
@@ -97,6 +104,8 @@
 				F839B343204920C4004B4D9D /* PlayerView.swift */,
 				F831EAB7204A5F610091CABD /* GPSLogWriter.swift */,
 				F831EAB9204AB63C0091CABD /* LogMapViewController.swift */,
+				F8FDACAA204BAF5900DE5E13 /* Constants.swift */,
+				F8FDACB0204BCA2800DE5E13 /* FilenameUtil.swift */,
 			);
 			path = drivecamera;
 			sourceTree = "<group>";
@@ -104,6 +113,7 @@
 		F833036F2042DEF400520B57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				F8FDACAE204BC05700DE5E13 /* Photos.framework */,
 				F83303792042DF1E00520B57 /* CoreBluetooth.framework */,
 				F83303782042DF1E00520B57 /* CoreMotion.framework */,
 				F83303752042DF0300520B57 /* AVFoundation.framework */,
@@ -191,6 +201,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8FDACB1204BCA2800DE5E13 /* FilenameUtil.swift in Sources */,
 				F831EAB8204A5F610091CABD /* GPSLogWriter.swift in Sources */,
 				F83303602042DEA500520B57 /* ViewController.swift in Sources */,
 				F833035E2042DEA500520B57 /* AppDelegate.swift in Sources */,
@@ -199,6 +210,7 @@
 				F839B344204920C4004B4D9D /* PlayerView.swift in Sources */,
 				F836A2B42048561F007A66EB /* PlayListCell.swift in Sources */,
 				F839B34220492055004B4D9D /* PlayerViewController.swift in Sources */,
+				F8FDACAB204BAF5900DE5E13 /* Constants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

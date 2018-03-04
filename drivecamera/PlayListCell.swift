@@ -16,18 +16,8 @@ class PlayListCell: UITableViewCell {
     @IBOutlet weak var sizeLabel: UILabel!
     @IBOutlet weak var videoImageView: UIImageView!
     
-    static var filenameFormatter: DateFormatter {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyyMMdd_HHmmss"
-        return fmt
-    }
-    
-    static var timestampFormatter: DateFormatter {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return fmt
-    }
-    
+    var filename: FilenameUtil = FilenameUtil()
+        
     func setURL(url: URL) {
         let asset = AVAsset(url: url)
         let size = fileSizeFromURL(url: url)
@@ -40,9 +30,9 @@ class PlayListCell: UITableViewCell {
     // ファイル名からタイムスタンプ形式の文字列を作る
     private func dateTimeStringFromURL(url: URL) -> String {
         let name = url.lastPathComponent
-        let filename = String(name[name.index(name.startIndex, offsetBy: 3)...name.index(name.endIndex, offsetBy: -5)])
-        let dateTime = PlayListCell.filenameFormatter.date(from: filename)
-        return PlayListCell.timestampFormatter.string(from: dateTime!)
+        let fn = String(name[name.index(name.startIndex, offsetBy: 0)...name.index(name.endIndex, offsetBy: -5)])
+        let dateTime = filename.date(fromFilename: fn)
+        return filename.timestamp(from: dateTime)
     }
     
     // ファイルのサイズをメガバイトで返す

@@ -54,37 +54,14 @@ class ViewController: UIViewController {
     var videoQuality: Int = 0
     var previewLayer: AVCaptureVideoPreviewLayer!
     var timestampLayer: CATextLayer!
-    var timestampFormatter: DateFormatter!
-    var filenameFormatter: DateFormatter!
     var speeds: [Double]!
     var recordAudio: Bool = true
     var gpsLogging: Bool = false
     var logFilePath: String!
     var logWriter: GPSLogWriter!
+    var filename: FilenameUtil = FilenameUtil()
     
     var testSpeed:Double = 10
-    
-    struct Constants {
-        static let GSensorSensibilityKey = "GSensor-Sensibility"
-        static let AutoStartEnabledKey = "AutoStartEnabled"
-        static let AutoStopEnabledKey = "AutoStopEnabled"
-        static let VideoQualityKey = "VideoQuality"
-        static let GSensorStrong = 4.0
-        static let GSensorMedium = 2.8
-        static let GSensorWeak = 1.8
-        static let SpeedVerySlow = 10.0
-        static let SpeedSlow = 50.0
-        static let SpeedNormal = 70.0
-        static let SpeedHigh = 100.0
-        static let SpeedVeryHigh = 110.0
-        static let SpeedVerySlowKey = "SpeedVerySlow"
-        static let SpeedSlowKey = "SpeedSlow"
-        static let SpeedNormalKey = "SpeedNormal"
-        static let SpeedHighKey = "SpeedHigh"
-        static let SpeedVeryHighKey = "SpeedVeryHigh"
-        static let RecordAudioKey = "RecordAudio"
-        static let GPSLogEnabledKey = "GPSLogEnabled"
-    }
     
 
     // カメラプレビューの設定
@@ -111,7 +88,7 @@ class ViewController: UIViewController {
         timestampLayer.foregroundColor = UIColor.green.cgColor
         timestampLayer.fontSize = 14.0
         timestampLayer.allowsEdgeAntialiasing = true
-        timestampLayer.string = timestampFormatter.string(from: Date())
+        timestampLayer.string = filename.timestamp(from: Date())
         previewView.layer.addSublayer(timestampLayer)
         let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(ViewController.updateClock), userInfo: nil, repeats: true)
         timer.fire()
@@ -122,7 +99,7 @@ class ViewController: UIViewController {
     }
     
     @objc func updateClock() {
-        timestampLayer.string = timestampFormatter.string(from: Date())
+        timestampLayer.string = filename.timestamp(from: Date())
     }
     // ビデオキャプチャーの設定
     private func setupCaptureSession() {
@@ -133,16 +110,30 @@ class ViewController: UIViewController {
     private func setupCaptureDevice() {
         let discoverySession = AVCaptureDevice.DiscoverySession.init(deviceTypes: [AVCaptureDevice.DeviceType.builtInWideAngleCamera], mediaType: AVMediaType.video, position: AVCaptureDevice.Position.back)
         let devices = discoverySession.devices
-        /*
-        for device in devices {
-            if device.position == AVCaptureDevice.Position.back {
-                videoDevice = device
-            }
-        }
-         */
         
         videoDevice = devices.first
         videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
+        
+        if videoDevice.isFocusModeSupported(AVCaptureDevice.FocusMode.locked) {
+            do {
+                try videoDevice.lockForConfiguration()
+                videoDevice.focusMode = AVCaptureDevice.FocusMode.locked
+                videoDevice.focusPointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                videoDevice.unlockForConfiguration()
+            } catch {
+            }
+        }
+        
+        if videoDevice.isExposureModeSupported(AVCaptureDevice.ExposureMode.continuousAutoExposure) {
+            do {
+                try videoDevice.lockForConfiguration()
+                videoDevice.exposureMode = AVCaptureDevice.ExposureMode.continuousAutoExposure
+                videoDevice.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                videoDevice.unlockForConfiguration()
+            } catch {
+                
+            }
+        }
         
         do {
             videoInput = try AVCaptureDeviceInput(device:videoDevice)
@@ -177,15 +168,11 @@ class ViewController: UIViewController {
             print("cannot add audio input device")
         }
     }
-    // 動画録画先の設定
-    private func setupVideoOutput() {
-        fileOutput = AVCaptureMovieFileOutput()
-        if captureSession.canAddOutput(fileOutput) {
-            captureSession.addOutput(fileOutput)
-        }
+    
+    private func setupVideoFileOutputLayout() {
         // 保存される動画の向きを設定
         var videoConnection: AVCaptureConnection!
-            
+        
         for connection:AVCaptureConnection in fileOutput.connections {
             for port:AVCaptureInput.Port in connection.inputPorts {
                 if port.mediaType == AVMediaType.video {
@@ -193,11 +180,20 @@ class ViewController: UIViewController {
                 }
             }
         }
-            
+        
         if videoConnection.isVideoOrientationSupported {
             videoConnection.videoOrientation = AVCaptureVideoOrientation.landscapeRight
         }
     }
+    
+    // 動画録画先の設定
+    private func setupVideoOutput() {
+        fileOutput = AVCaptureMovieFileOutput()
+        if captureSession.canAddOutput(fileOutput) {
+            captureSession.addOutput(fileOutput)
+        }
+        setupVideoFileOutputLayout()
+     }
     
     // キャプチャーセッションの開始
     private func startCaptureSession() {
@@ -291,13 +287,13 @@ class ViewController: UIViewController {
     private func startRecording() {
         let documentPath = NSHomeDirectory() + "/Documents/"
         let date = Date()
-        filePath = documentPath + "dc-" + filenameFormatter.string(from: date) + ".mp4"
+        filePath = documentPath + filename.filename(from: date) + ".mp4"
         let fileURL: URL = URL(fileURLWithPath: filePath)
         recordingInProgress = true
         fileOutput.startRecording(to: fileURL, recordingDelegate: self)
 
         if gpsLogging {
-            logFilePath = documentPath + "log-" + filenameFormatter.string(from: date) + ".csv"
+            logFilePath = documentPath + filename.filename(from: date) + ".csv"
             logWriter = GPSLogWriter(path:logFilePath)
             logWriter.start()
         } else {
@@ -424,11 +420,6 @@ class ViewController: UIViewController {
     private func calculateFreeStorageSize() -> NSNumber {
         let documentDirPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
         if let sysAttributes = try? FileManager.default.attributesOfFileSystem(forPath: documentDirPath.last!) {
-            /*
-            for val in sysAttributes {
-                print(val)
-            }
-             */
             if let freeStorageSize = sysAttributes[FileAttributeKey.systemFreeSize] as? NSNumber {
                 let freeStorageGigaBytes = freeStorageSize.doubleValue / Double(1024 * 1024 * 1024)
                 return NSNumber(value: round(freeStorageGigaBytes))
@@ -459,10 +450,6 @@ class ViewController: UIViewController {
         autoStartSwitch.isOn = true
         recordButton.layer.masksToBounds = true
         recordButton.layer.cornerRadius = 24.0
-        timestampFormatter = DateFormatter()
-        timestampFormatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
-        filenameFormatter = DateFormatter()
-        filenameFormatter.dateFormat = "yyyyMMdd_HHmmss"
         recordButton.backgroundColor = UIColor.red
         
         
@@ -492,11 +479,6 @@ class ViewController: UIViewController {
         super.viewWillDisappear(animated)
         stopCaptureSession()
     }
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
-
 
     func sendSpeed(speed:CLLocationSpeed) {
         speedLabel.text = "".appendingFormat("%.0f", speed)
@@ -547,13 +529,6 @@ extension ViewController: AVCaptureFileOutputRecordingDelegate {
     
 }
 
-extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        print("delegate called")
-    }
-    
-}
 
 extension ViewController: CLLocationManagerDelegate {
     
@@ -582,7 +557,7 @@ extension ViewController: CLLocationManagerDelegate {
             testSpeed += 10.0
          }
          */
-        // 時速５キロを超えたら録画を自動的に開始する
+        // 時速10キロを超えたら録画を自動的に開始する
         if speed > speeds[0] && !recordingInProgress && autoStartEnabled {
             startRecording()
         }
