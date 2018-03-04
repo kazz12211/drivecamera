@@ -337,8 +337,8 @@ class ViewController: UIViewController {
     
     // 動画品質の設定
     @IBAction func qualityChanged(_ sender: Any) {
-        stopCaptureSession()
-
+        captureSession.beginConfiguration()
+        
         videoQuality = 0
         if qualitySegmentedControl.selectedSegmentIndex == 0 {
             captureSession.sessionPreset = videoQualities[qualitySegmentedControl.selectedSegmentIndex]
@@ -348,7 +348,7 @@ class ViewController: UIViewController {
             videoQuality = qualitySegmentedControl.selectedSegmentIndex
         }
 
-        startCaptureSession()
+        captureSession.commitConfiguration()
         
         saveUserDefaults()
     }
@@ -364,7 +364,7 @@ class ViewController: UIViewController {
     @IBAction func audioSwitchChanged(_ sender: Any) {
         recordAudio = audioSwitch.isOn
         
-        stopCaptureSession()
+        captureSession.beginConfiguration()
         
         if !recordAudio {
             removeAudioInput()
@@ -372,7 +372,7 @@ class ViewController: UIViewController {
             addAudioInput()
         }
         
-        startCaptureSession()
+        captureSession.commitConfiguration()
 
         saveUserDefaults()
     }
@@ -381,22 +381,6 @@ class ViewController: UIViewController {
         gpsLogging = gpsLogSwitch.isOn
         saveUserDefaults()
     }
-    
-    /*
-    @objc func video(videoPath: NSString, didFinishSavingWithError error: NSError?, contextInfo info: AnyObject) {
-        if error != nil {
-            print("video saving error")
-        } else {
-            print("video saving success", videoPath)
-            do {
-                try FileManager.default.removeItem(atPath: videoPath as String)
-                print("video file removed", videoPath)
-            } catch {
-             
-            }
-        }
-    }
-    */
     
     @objc func batteryLevelChanged(notification: NSNotification)  {
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
@@ -458,67 +442,6 @@ class ViewController: UIViewController {
         freeStorageLabel.text = "".appendingFormat("%.0fGB", freeSize.doubleValue)
     }
     
-    private func reflectUserDefaults() {
-        let defaults = UserDefaults.standard
-        gsensibility = defaults.double(forKey: Constants.GSensorSensibilityKey)
-        if(gsensibility == Constants.GSensorWeak) {
-            gsensorSegmentedController.selectedSegmentIndex = 2
-        } else if(gsensibility == Constants.GSensorMedium) {
-            gsensorSegmentedController.selectedSegmentIndex = 1
-        } else if(gsensibility == Constants.GSensorStrong) {
-            gsensorSegmentedController.selectedSegmentIndex = 0
-        }
-        
-        autoStartEnabled = defaults.bool(forKey: Constants.AutoStartEnabledKey)
-        autoStartSwitch.isOn = autoStartEnabled
-
-        autoStopEnabled = defaults.bool(forKey: Constants.AutoStopEnabledKey)
-        
-        qualitySegmentedControl.selectedSegmentIndex = defaults.integer(forKey: Constants.VideoQualityKey)
-        videoQuality = defaults.integer(forKey: Constants.VideoQualityKey)
-        captureSession.sessionPreset = videoQualities[videoQuality]
-        
-        speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
-        if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
-            speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
-            if speeds[0] < Constants.SpeedVerySlow {
-                speeds[0] = Constants.SpeedVerySlow
-            }
-        }
-        if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
-        }
-        if defaults.double(forKey: Constants.SpeedNormalKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedNormalKey)
-        }
-        if defaults.double(forKey: Constants.SpeedHighKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedHighKey)
-        }
-        if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedVeryHighKey)
-        }
-        
-        recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
-        audioSwitch.isOn = recordAudio
-        
-        gpsLogging = defaults.bool(forKey: Constants.GPSLogEnabledKey)
-        gpsLogSwitch.isOn = gpsLogging
-    }
-    
-    private func saveUserDefaults() {
-        let defaults = UserDefaults.standard
-        defaults.set(gsensibility, forKey: Constants.GSensorSensibilityKey)
-        defaults.set(autoStartEnabled, forKey: Constants.AutoStartEnabledKey)
-        defaults.set(autoStopEnabled, forKey: Constants.AutoStopEnabledKey)
-        defaults.set(videoQuality, forKey: Constants.VideoQualityKey)
-        defaults.set(speeds[0], forKey: Constants.SpeedVerySlowKey)
-        defaults.set(speeds[1], forKey: Constants.SpeedSlowKey)
-        defaults.set(speeds[2], forKey: Constants.SpeedNormalKey)
-        defaults.set(speeds[3], forKey: Constants.SpeedHighKey)
-        defaults.set(speeds[4], forKey: Constants.SpeedVeryHighKey)
-        defaults.set(recordAudio, forKey: Constants.RecordAudioKey)
-        defaults.set(gpsLogging, forKey: Constants.GPSLogEnabledKey)
-    }
     
     private func setupBleStatusView() {
         bleStatusView.layer.masksToBounds = true
@@ -727,4 +650,72 @@ extension ViewController: CBPeripheralDelegate {
         }
     }
     
+}
+
+extension ViewController {
+    
+    private func loadUserDefaults() {
+        let defaults = UserDefaults.standard
+        gsensibility = defaults.double(forKey: Constants.GSensorSensibilityKey)
+        autoStartEnabled = defaults.bool(forKey: Constants.AutoStartEnabledKey)
+        autoStopEnabled = defaults.bool(forKey: Constants.AutoStopEnabledKey)
+        videoQuality = defaults.integer(forKey: Constants.VideoQualityKey)
+        speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
+        if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
+            speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
+            if speeds[0] < Constants.SpeedVerySlow {
+                speeds[0] = Constants.SpeedVerySlow
+            }
+        }
+        if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
+        }
+        if defaults.double(forKey: Constants.SpeedNormalKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedNormalKey)
+        }
+        if defaults.double(forKey: Constants.SpeedHighKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedHighKey)
+        }
+        if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
+            speeds[1] = defaults.double(forKey: Constants.SpeedVeryHighKey)
+        }
+        recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
+        gpsLogging = defaults.bool(forKey: Constants.GPSLogEnabledKey)
+    }
+    
+    private func reflectUserDefaults() {
+        loadUserDefaults()
+
+        if(gsensibility == Constants.GSensorWeak) {
+            gsensorSegmentedController.selectedSegmentIndex = 2
+        } else if(gsensibility == Constants.GSensorMedium) {
+            gsensorSegmentedController.selectedSegmentIndex = 1
+        } else if(gsensibility == Constants.GSensorStrong) {
+            gsensorSegmentedController.selectedSegmentIndex = 0
+        }
+        
+        autoStartSwitch.isOn = autoStartEnabled
+        
+        qualitySegmentedControl.selectedSegmentIndex = videoQuality
+        
+        audioSwitch.isOn = recordAudio
+        
+        gpsLogSwitch.isOn = gpsLogging
+    }
+    
+    private func saveUserDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.set(gsensibility, forKey: Constants.GSensorSensibilityKey)
+        defaults.set(autoStartEnabled, forKey: Constants.AutoStartEnabledKey)
+        defaults.set(autoStopEnabled, forKey: Constants.AutoStopEnabledKey)
+        defaults.set(videoQuality, forKey: Constants.VideoQualityKey)
+        defaults.set(speeds[0], forKey: Constants.SpeedVerySlowKey)
+        defaults.set(speeds[1], forKey: Constants.SpeedSlowKey)
+        defaults.set(speeds[2], forKey: Constants.SpeedNormalKey)
+        defaults.set(speeds[3], forKey: Constants.SpeedHighKey)
+        defaults.set(speeds[4], forKey: Constants.SpeedVeryHighKey)
+        defaults.set(recordAudio, forKey: Constants.RecordAudioKey)
+        defaults.set(gpsLogging, forKey: Constants.GPSLogEnabledKey)
+    }
+
 }

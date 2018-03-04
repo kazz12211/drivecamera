@@ -496,15 +496,16 @@
                                 </connections>
                             </button>
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="bb1-x2-lCR">
-                                <rect key="frame" x="415" y="18" width="137" height="29"/>
+                                <rect key="frame" x="415" y="12" width="137" height="41"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="28" id="CGy-Qi-az5"/>
+                                    <constraint firstAttribute="height" constant="40" id="CGy-Qi-az5"/>
                                     <constraint firstAttribute="width" constant="137" id="sp3-V5-P8b"/>
                                 </constraints>
                                 <segments>
                                     <segment title="動画一覧"/>
                                     <segment title="GPSログ"/>
                                 </segments>
+                                <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <connections>
                                     <action selector="viewSwitchChanged:" destination="tZa-b4-eT0" eventType="valueChanged" id="Cfn-mH-4SH"/>
                                 </connections>
@@ -516,7 +517,7 @@
                             <constraint firstItem="hzk-cC-qvG" firstAttribute="top" secondItem="8LC-vz-xyb" secondAttribute="top" constant="8" id="GQX-5f-uEo"/>
                             <constraint firstItem="EKf-s8-RBK" firstAttribute="top" secondItem="hzk-cC-qvG" secondAttribute="bottom" constant="4" id="LlR-83-Rr2"/>
                             <constraint firstItem="8LC-vz-xyb" firstAttribute="trailing" secondItem="bb1-x2-lCR" secondAttribute="trailing" constant="16" id="Vy7-fg-xS0"/>
-                            <constraint firstItem="EKf-s8-RBK" firstAttribute="top" secondItem="bb1-x2-lCR" secondAttribute="bottom" constant="16" id="Xtf-Od-3hb"/>
+                            <constraint firstItem="EKf-s8-RBK" firstAttribute="top" secondItem="bb1-x2-lCR" secondAttribute="bottom" constant="10" id="Xtf-Od-3hb"/>
                             <constraint firstItem="EKf-s8-RBK" firstAttribute="trailing" secondItem="8LC-vz-xyb" secondAttribute="trailing" id="h3H-qT-bqs"/>
                             <constraint firstItem="hzk-cC-qvG" firstAttribute="leading" secondItem="8LC-vz-xyb" secondAttribute="leading" constant="8" id="qW8-7g-Pw6"/>
                             <constraint firstItem="EKf-s8-RBK" firstAttribute="bottom" secondItem="8LC-vz-xyb" secondAttribute="bottom" id="zrL-xB-Ugr"/>
