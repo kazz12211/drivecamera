@@ -254,7 +254,10 @@ class ViewController: UIViewController {
     private func setupBatteryLevelMonitoring() {
         UIDevice.current.isBatteryMonitoringEnabled = true
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
+        // バッテリーの充電状態の変化を検知する
         NotificationCenter.default.addObserver(self, selector: #selector(ViewController.batteryLevelChanged(notification:)), name: NSNotification.Name.UIDeviceBatteryLevelDidChange, object: nil)
+        // バッテリーが充電中かどうかを判定する
+        NotificationCenter.default.addObserver(self, selector: #selector(ViewController.batteryStateChanged(notification:)), name: NSNotification.Name.UIDeviceBatteryStateDidChange, object: nil)
     }
     // ボタンの状態変更
     private func updateButtons() {
@@ -278,44 +281,47 @@ class ViewController: UIViewController {
     
     // 録画停止
     private func stopRecording() {
-        fileOutput.stopRecording()
-        recordingInProgress = false
+        if recordingInProgress {
+            fileOutput.stopRecording()
+            recordingInProgress = false
 
-        if gpsLogging {
-            logWriter.stop()
-            logTimer.invalidate()
-            logTimer = nil
+            if gpsLogging {
+                logWriter.stop()
+                logTimer.invalidate()
+                logTimer = nil
+            }
+            updateButtons()
         }
-
-        updateButtons()
     }
     
     // 録画開始
     private func startRecording() {
-        let documentPath = NSHomeDirectory() + "/Documents/"
-        let date = Date()
-        filePath = documentPath + filename.filename(from: date) + ".mp4"
-        let fileURL: URL = URL(fileURLWithPath: filePath)
-        recordingInProgress = true
-        fileOutput.startRecording(to: fileURL, recordingDelegate: self)
+        if !recordingInProgress {
+            let documentPath = NSHomeDirectory() + "/Documents/"
+            let date = Date()
+            filePath = documentPath + filename.filename(from: date) + ".mp4"
+            let fileURL: URL = URL(fileURLWithPath: filePath)
+            recordingInProgress = true
+            fileOutput.startRecording(to: fileURL, recordingDelegate: self)
 
-        if gpsLogging {
-            logFilePath = documentPath + filename.filename(from: date) + ".csv"
-            logWriter = GPSLogWriter(path:logFilePath)
-            logWriter.start()
-            logTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(Constants.LoggingInterval), repeats: true, block: { (timer) in
-                let location = self.locationManager.location
-                let altitude = location?.altitude
-                let latitude = location?.coordinate.latitude
-                let longitude = location?.coordinate.longitude
-                self.logGPS(timestamp: Date(), altitude: altitude!, latitude: latitude!, longitude: longitude!)
-            })
-            logTimer.fire()
-        } else {
-            logFilePath = nil
+            if gpsLogging {
+                logFilePath = documentPath + filename.filename(from: date) + ".csv"
+                logWriter = GPSLogWriter(path:logFilePath)
+                logWriter.start()
+                logTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(Constants.LoggingInterval), repeats: true, block: { (timer) in
+                    let location = self.locationManager.location
+                    let altitude = location?.altitude
+                    let latitude = location?.coordinate.latitude
+                    let longitude = location?.coordinate.longitude
+                    self.logGPS(timestamp: Date(), altitude: altitude!, latitude: latitude!, longitude: longitude!)
+                })
+                logTimer.fire()
+            } else {
+                logFilePath = nil
+            }
+
+            updateButtons()
         }
-
-        updateButtons()
     }
     
     // 動画の録画・停止アクション
@@ -391,6 +397,12 @@ class ViewController: UIViewController {
         showBatteryLevel(batteryLevel: UIDevice.current.batteryLevel)
     }
     
+    @objc func batteryStateChanged(notification: NSNotification)  {
+        if recordingInProgress && UIDevice.current.batteryState == .unplugged {
+            stopRecording()
+        }
+    }
+
     private func showBatteryLevel(batteryLevel: Float) {
         batteryLevelLabel.text = "".appendingFormat("%.0f%%", batteryLevel * 100)
     }
