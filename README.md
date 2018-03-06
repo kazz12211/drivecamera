@@ -9,7 +9,7 @@
 
 使わなくなったiPhone 5sで使えれば良いと思い、画面の大きさの違う端末への対応はしていません。
 
-![](https://www.github.com/kazz12211/drivecamera/dorakame.png)
+![](./doracame.PNG)
 
 ### 主な機能
 
