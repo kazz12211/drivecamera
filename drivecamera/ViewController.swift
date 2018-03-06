@@ -60,6 +60,7 @@ class ViewController: UIViewController {
     var logFilePath: String!
     var logWriter: GPSLogWriter!
     var filename: FilenameUtil = FilenameUtil()
+    var logTimer: Timer!
     
     var testSpeed:Double = 10
     
@@ -93,6 +94,7 @@ class ViewController: UIViewController {
         let timer = Timer.scheduledTimer(timeInterval: 1/5, target: self, selector: #selector(ViewController.updateClock), userInfo: nil, repeats: true)
         timer.fire()
    }
+    
     @objc func restartRecording() {
         stopRecording()
         startRecording()
@@ -114,26 +116,27 @@ class ViewController: UIViewController {
         videoDevice = devices.first
         videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
         
+        /*
         if videoDevice.isFocusModeSupported(AVCaptureDevice.FocusMode.locked) {
             do {
                 try videoDevice.lockForConfiguration()
                 videoDevice.focusMode = AVCaptureDevice.FocusMode.locked
-                videoDevice.focusPointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                videoDevice.focusPointOfInterest = CGPoint(x: 0.5, y: 0.7)
                 videoDevice.unlockForConfiguration()
             } catch {
             }
         }
-        
-        if videoDevice.isExposureModeSupported(AVCaptureDevice.ExposureMode.continuousAutoExposure) {
+        if videoDevice.isExposureModeSupported(AVCaptureDevice.ExposureMode.autoExpose) {
             do {
                 try videoDevice.lockForConfiguration()
-                videoDevice.exposureMode = AVCaptureDevice.ExposureMode.continuousAutoExposure
-                videoDevice.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                videoDevice.exposureMode = AVCaptureDevice.ExposureMode.autoExpose
+                videoDevice.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.7)
                 videoDevice.unlockForConfiguration()
             } catch {
                 
             }
         }
+         */
         
         do {
             videoInput = try AVCaptureDeviceInput(device:videoDevice)
@@ -238,8 +241,10 @@ class ViewController: UIViewController {
                         self.startRecording()
                     } else {
                         // 録画中に衝撃を受けたら１０秒後一旦録画を停止して新しい動画の録画を始める
+                        /*
                         let timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(ViewController.restartRecording), userInfo: nil, repeats: false)
                         timer.fire()
+                        */
                     }
                 }
             });
@@ -278,6 +283,8 @@ class ViewController: UIViewController {
 
         if gpsLogging {
             logWriter.stop()
+            logTimer.invalidate()
+            logTimer = nil
         }
 
         updateButtons()
@@ -296,6 +303,14 @@ class ViewController: UIViewController {
             logFilePath = documentPath + filename.filename(from: date) + ".csv"
             logWriter = GPSLogWriter(path:logFilePath)
             logWriter.start()
+            logTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(Constants.LoggingInterval), repeats: true, block: { (timer) in
+                let location = self.locationManager.location
+                let altitude = location?.altitude
+                let latitude = location?.coordinate.latitude
+                let longitude = location?.coordinate.longitude
+                self.logGPS(timestamp: Date(), altitude: altitude!, latitude: latitude!, longitude: longitude!)
+            })
+            logTimer.fire()
         } else {
             logFilePath = nil
         }
@@ -335,15 +350,9 @@ class ViewController: UIViewController {
     @IBAction func qualityChanged(_ sender: Any) {
         captureSession.beginConfiguration()
         
-        videoQuality = 0
-        if qualitySegmentedControl.selectedSegmentIndex == 0 {
-            captureSession.sessionPreset = videoQualities[qualitySegmentedControl.selectedSegmentIndex]
-            videoQuality = qualitySegmentedControl.selectedSegmentIndex
-        } else {
-            captureSession.sessionPreset = videoQualities[qualitySegmentedControl.selectedSegmentIndex]
-            videoQuality = qualitySegmentedControl.selectedSegmentIndex
-        }
-
+        videoQuality = qualitySegmentedControl.selectedSegmentIndex
+        captureSession.sessionPreset = videoQualities[videoQuality]
+ 
         captureSession.commitConfiguration()
         
         saveUserDefaults()
@@ -562,9 +571,11 @@ extension ViewController: CLLocationManagerDelegate {
             startRecording()
         }
         
+        /*
         if recordingInProgress && gpsLogging {
             logGPS(timestamp: Date(), altitude: altitude, latitude: latitude, longitude: longitude)
         }
+         */
     }
 
 }

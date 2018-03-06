@@ -11,7 +11,6 @@ import Foundation
 class GPSLogWriter : NSObject {
     
     var logFilePath: String!
-    var lastTime: Date!
     
     override init() {
         super.init()
@@ -23,7 +22,6 @@ class GPSLogWriter : NSObject {
     }
     
     func start() {
-        lastTime = Date()
     }
     
     func stop() {
@@ -40,12 +38,6 @@ class GPSLogWriter : NSObject {
     }
     
     func record(timestamp: Date, latitude: Double, longitude: Double, altitude: Double) {
-        if timestamp.timeIntervalSince(lastTime) < 60 {
-            return
-        }
-        
-        lastTime = timestamp
-        
         guard let outputStream = OutputStream(toFileAtPath: logFilePath, append: true) else {
             return
         }

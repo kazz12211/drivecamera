@@ -28,5 +28,6 @@ struct Constants {
     static let SpeedVeryHighKey = "SpeedVeryHigh"
     static let RecordAudioKey = "RecordAudio"
     static let GPSLogEnabledKey = "GPSLogEnabled"
+    static let LoggingInterval = 5
 }
 
