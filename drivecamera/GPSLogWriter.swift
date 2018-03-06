@@ -57,8 +57,8 @@ class GPSLogWriter : NSObject {
             outputStream.write($0, maxLength: data.count)
         })
         
-        if(result > 0) {
-            print(result)
+        if(result <= 0) {
+            print("data.withUnsafeBytes failed with \(result)")
         }
         return
     }

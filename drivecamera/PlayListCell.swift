@@ -20,10 +20,9 @@ class PlayListCell: UITableViewCell {
         
     func setURL(url: URL) {
         let asset = AVAsset(url: url)
-        let size = fileSizeFromURL(url: url)
         nameLabel.text = dateTimeStringFromURL(url: url)
-        timeLabel.text = "".appendingFormat("%.0f 秒", asset.duration.seconds)
-        sizeLabel.text = "\(size) MB"
+        timeLabel.text = timeStringFromAsset(asset: asset)
+        sizeLabel.text = fileSizeStringFromURL(url: url)
         videoImageView.image = thumbnailFromVideo(asset: asset)
     }
     
@@ -35,13 +34,49 @@ class PlayListCell: UITableViewCell {
         return filename.timestamp(from: dateTime)
     }
     
+    private func timeStringFromAsset(asset: AVAsset) -> String {
+        var seconds = UInt64(asset.duration.seconds)
+        var minutes = UInt64(0)
+        var hours = UInt64(0)
+        if(seconds >= 60) {
+            minutes = seconds / 60
+            seconds = seconds % 60
+        }
+        if(minutes >= 60) {
+            hours = minutes / 60
+            minutes = minutes % 60
+        }
+        if hours > 0 {
+            return "\(hours)時間\(minutes)分\(seconds)秒"
+        }
+        if minutes > 0 {
+            return "\(minutes)分\(seconds)秒"
+        } else {
+            return "\(seconds)秒"
+        }
+    }
+    
+    private func fileSizeStringFromURL(url: URL) -> String {
+        let kb = fileSizeFromURL(url: url).int64Value;
+        if kb < 1024 {
+            return "".appendingFormat("\(kb) KB")
+        }
+        if kb < (1024 * 1024) {
+            let mb = kb / 1024
+            return "".appendingFormat("\(mb) MB")
+        }
+        let mb = (kb / 1024) % 1024
+        let gb = kb / (1024 * 1024)
+        return "".appendingFormat("\(gb).\(mb) GB")
+    }
+    
     // ファイルのサイズをメガバイトで返す
     private func fileSizeFromURL(url: URL) -> NSNumber {
         let filePath = NSHomeDirectory() + "/Documents/" + url.lastPathComponent
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: filePath)
             let bytes: NSNumber = attributes[FileAttributeKey.size] as! NSNumber
-            return NSNumber(value:bytes.int64Value / (1024 * 1024))
+            return NSNumber(value:bytes.int64Value / 1024)
         } catch {
         }
         return NSNumber(value: 0)

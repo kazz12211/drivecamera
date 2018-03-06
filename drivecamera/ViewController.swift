@@ -102,6 +102,7 @@ class ViewController: UIViewController {
     
     @objc func updateClock() {
         timestampLayer.string = filename.timestamp(from: Date())
+        showFreeStorageSize()
     }
     // ビデオキャプチャーの設定
     private func setupCaptureSession() {
@@ -599,7 +600,7 @@ extension ViewController: CBCentralManagerDelegate {
             showBleStatus(status: 1)
             centralManager.scanForPeripherals(withServices: nil, options: nil)
         default:
-            print(central.state)
+            print("central.state = \(central.state)")
         }
     }
     
