@@ -34,6 +34,7 @@ struct KoshianConstants {
     static let PIO3 = DigitalIO3
     static let PIO4 = DigitalIO4
     
+    static let KoshianPoweredOn = Notification.Name("KoshianPoweredOn")
     static let KoshianConnected = Notification.Name("KoshianConnected")
     static let KoshianDisconnected = Notification.Name("KoshianDisconnected")
     static let KoshianConnectionTimeout = Notification.Name("KoshianConnectionTimeout")
@@ -87,7 +88,7 @@ class Koshian: NSObject {
     func connect() {
         if !connected {
             print("Scanning Koshian")
-            connectionTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false, block: { (timer) in
+            connectionTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false, block: { (timer) in
                 if self.connected == false {
                     print("Connection Timeout")
                     NotificationCenter.default.post(name: KoshianConstants.KoshianConnectionTimeout, object: self)
@@ -281,6 +282,7 @@ extension Koshian: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             print("powerOn")
+            NotificationCenter.default.post(name: KoshianConstants.KoshianPoweredOn, object: self)
         default:
             print("central.state = \(central.state)")
         }

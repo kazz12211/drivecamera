@@ -8,7 +8,6 @@
 
 import UIKit
 import CoreLocation
-import CoreBluetooth
 import CoreMotion
 import AVFoundation
 
@@ -33,11 +32,6 @@ class ViewController: UIViewController {
     
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
-    var centralManager: CBCentralManager!
-    
-    var speedmeterPeripheral: CBPeripheral!
-    var speedService: CBService!
-    var speedCharacteristic: CBCharacteristic!
     
     var captureSession: AVCaptureSession = AVCaptureSession()
     var videoDevice: AVCaptureDevice!
@@ -61,6 +55,7 @@ class ViewController: UIViewController {
     var logWriter: GPSLogWriter!
     var filename: FilenameUtil = FilenameUtil()
     var logTimer: Timer!
+    var speedIndicator: SpeedIndicator!
     
     var testSpeed:Double = 10
     
@@ -116,28 +111,6 @@ class ViewController: UIViewController {
         
         videoDevice = devices.first
         videoDevice.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
-        
-        /*
-        if videoDevice.isFocusModeSupported(AVCaptureDevice.FocusMode.locked) {
-            do {
-                try videoDevice.lockForConfiguration()
-                videoDevice.focusMode = AVCaptureDevice.FocusMode.locked
-                videoDevice.focusPointOfInterest = CGPoint(x: 0.5, y: 0.7)
-                videoDevice.unlockForConfiguration()
-            } catch {
-            }
-        }
-        if videoDevice.isExposureModeSupported(AVCaptureDevice.ExposureMode.autoExpose) {
-            do {
-                try videoDevice.lockForConfiguration()
-                videoDevice.exposureMode = AVCaptureDevice.ExposureMode.autoExpose
-                videoDevice.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.7)
-                videoDevice.unlockForConfiguration()
-            } catch {
-                
-            }
-        }
-         */
         
         do {
             videoInput = try AVCaptureDeviceInput(device:videoDevice)
@@ -219,11 +192,6 @@ class ViewController: UIViewController {
         locationManager.startUpdatingLocation()
     }
 
-    // Bluetoothセントラルの開始
-    private func setupBluetooth() {
-        centralManager = CBCentralManager(delegate:self, queue:nil, options:nil)
-    }
-
     // 加速度センサーの利用開始
     private func setupMotionManager() {
         if motionManager.isAccelerometerAvailable {
@@ -237,15 +205,8 @@ class ViewController: UIViewController {
                     return
                 }
                 if fabs(data.acceleration.y) > self.gsensibility || fabs(data.acceleration.z) > self.gsensibility {
-                    //print("".appendingFormat("x = %.4f, y = %.4f, z = %.4f", data.acceleration.x, data.acceleration.y, data.acceleration.z))
                     if !self.recordingInProgress {
                         self.startRecording()
-                    } else {
-                        // 録画中に衝撃を受けたら１０秒後一旦録画を停止して新しい動画の録画を始める
-                        /*
-                        let timer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(ViewController.restartRecording), userInfo: nil, repeats: false)
-                        timer.fire()
-                        */
                     }
                 }
             });
@@ -280,6 +241,13 @@ class ViewController: UIViewController {
         }
     }
     
+    private func setupSpeedIndicator() {
+        speedIndicator = SpeedIndicator(deviceName: "konashi2-f02226")
+        NotificationCenter.default.addObserver(self, selector: #selector(speedIndicationIsReadyToConnect(notif:)), name: SpeedIndicator.SpeedIndicatorReadyToConnect, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(speedIndicatorReady(notif:)), name: SpeedIndicator.SpeedIndicatorReady, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(speedIndicatorNotReady(notif:)), name: SpeedIndicator.SpeedIndicatorNotReady, object: nil)
+        showBleStatus(status: 1)
+    }
     // 録画停止
     private func stopRecording() {
         if recordingInProgress {
@@ -462,7 +430,19 @@ class ViewController: UIViewController {
         bleStatusView.layer.opacity = 1
         bleStatusView.backgroundColor = UIColor.white
     }
+  
+    @objc func speedIndicationIsReadyToConnect(notif: Notification) -> Void {
+        speedIndicator.connect()
+    }
     
+    @objc func speedIndicatorReady(notif: Notification) -> Void {
+        showBleStatus(status: 4)
+    }
+    
+    @objc func speedIndicatorNotReady(notif: Notification)  -> Void {
+        showBleStatus(status: 1)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -479,9 +459,8 @@ class ViewController: UIViewController {
 
         showFreeStorageSize()
         setupBleStatusView()
-        showBleStatus(status: 0)
         setupLocationManager()
-        setupBluetooth()
+        setupSpeedIndicator()
         setupMotionManager()
         setupCaptureSession()
         setupCaptureDevice()
@@ -490,6 +469,7 @@ class ViewController: UIViewController {
         setupTimestampLayer()
         setupBatteryLevelMonitoring()
         updateButtons()
+        
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -507,9 +487,9 @@ class ViewController: UIViewController {
         
         if speed < speeds[1] {
             meterPanel.backgroundColor = UIColor.black
-        } else if speed < speeds[2] {
+        } else if speed >= speeds[1] && speed < speeds[2] {
             meterPanel.backgroundColor = UIColor.blue
-        } else if speed < speeds[3] {
+        } else if speed >= speeds[2] && speed < speeds[3] {
             meterPanel.backgroundColor = UIColor.magenta
         } else {
             meterPanel.backgroundColor = UIColor.red
@@ -519,11 +499,9 @@ class ViewController: UIViewController {
         } else {
             stopBlinking()
         }
-        // BLEペリフェラルデバイスにスピードを送信
-        if speedCharacteristic != nil {
-            let str = "".appendingFormat("{speed:%.0f}", speed)
-            let data = str.data(using: String.Encoding.utf8)!
-            speedmeterPeripheral.writeValue(data, for: speedCharacteristic, type: CBCharacteristicWriteType.withResponse)
+        // SpeedIndicatorにスピードを送信
+        if speedIndicator.isReady() {
+            speedIndicator.showSpeed(speed)
         }
     }
 
@@ -545,8 +523,6 @@ class ViewController: UIViewController {
 
 extension ViewController: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        //print("capture finished", outputFileURL)
-        //UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(ViewController.video(videoPath:didFinishSavingWithError:contextInfo:)), nil)
     }
     
 }
@@ -568,88 +544,27 @@ extension ViewController: CLLocationManagerDelegate {
         if speed < 0 {
             speed = 0
         }
+        /*
         speed *= 3.6
         
         sendSpeed(speed:speed)
-        /*
+        */
         sendSpeed(speed:testSpeed)
-         if testSpeed > 130 {
-            testSpeed = 20
+         if testSpeed > 120 {
+            testSpeed = 40
          } else {
             testSpeed += 10.0
          }
-         */
+         
         // 時速10キロを超えたら録画を自動的に開始する
         if speed > speeds[0] && !recordingInProgress && autoStartEnabled {
             startRecording()
         }
         
-        /*
-        if recordingInProgress && gpsLogging {
-            logGPS(timestamp: Date(), altitude: altitude, latitude: latitude, longitude: longitude)
-        }
-         */
     }
 
 }
 
-extension ViewController: CBCentralManagerDelegate {
-    func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        switch central.state {
-        case .poweredOn:
-            showBleStatus(status: 1)
-            centralManager.scanForPeripherals(withServices: nil, options: nil)
-        default:
-            print("central.state = \(central.state)")
-        }
-    }
-    
-    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-        let localName = advertisementData["kCBAdvDataLocalName"] as? String
-        if localName == "Speedmeter" {
-            central.stopScan()
-            speedmeterPeripheral = peripheral
-            showBleStatus(status: 2)
-            central.connect(speedmeterPeripheral, options: nil)
-        }
-    }
-    
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        showBleStatus(status: 3)
-        speedmeterPeripheral.delegate = self
-        speedmeterPeripheral.discoverServices(nil)
-    }
-    
-    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        showBleStatus(status: 1)
-        speedmeterPeripheral = nil
-        speedCharacteristic = nil
-        centralManager.scanForPeripherals(withServices: nil, options: nil)
-    }
-    
-
-}
-
-extension ViewController: CBPeripheralDelegate {
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        for service in peripheral.services! {
-            if service.uuid.uuidString == "6E400001-B5A3-F393-E0A9-E50E24DCCA9F" {
-                showBleStatus(status: 4)
-                speedService = service
-                speedmeterPeripheral.discoverCharacteristics(nil, for: speedService)
-                break
-            }
-        }
-    }
-    
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        for characteristic in service.characteristics! {
-            speedCharacteristic = characteristic
-            break
-        }
-    }
-    
-}
 
 extension ViewController {
     
@@ -660,6 +575,7 @@ extension ViewController {
         autoStopEnabled = defaults.bool(forKey: Constants.AutoStopEnabledKey)
         videoQuality = defaults.integer(forKey: Constants.VideoQualityKey)
         speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
+        /*
         if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
             speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
             if speeds[0] < Constants.SpeedVerySlow {
@@ -668,16 +584,29 @@ extension ViewController {
         }
         if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
             speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
+            if speeds[1] < Constants.SpeedSlow {
+                speeds[1] = Constants.SpeedSlow
+            }
         }
         if defaults.double(forKey: Constants.SpeedNormalKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedNormalKey)
+            speeds[2] = defaults.double(forKey: Constants.SpeedNormalKey)
+            if speeds[2] < Constants.SpeedNormal {
+                speeds[2] = Constants.SpeedNormal
+            }
         }
         if defaults.double(forKey: Constants.SpeedHighKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedHighKey)
+            speeds[3] = defaults.double(forKey: Constants.SpeedHighKey)
+            if speeds[3] < Constants.SpeedHigh {
+                speeds[3] = Constants.SpeedHigh
+            }
         }
         if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedVeryHighKey)
+            speeds[4] = defaults.double(forKey: Constants.SpeedVeryHighKey)
+            if speeds[4] < Constants.SpeedVeryHigh {
+                speeds[4] = Constants.SpeedVeryHigh
+            }
         }
+         */
         recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
         gpsLogging = defaults.bool(forKey: Constants.GPSLogEnabledKey)
     }
@@ -718,3 +647,5 @@ extension ViewController {
     }
 
 }
+
+
