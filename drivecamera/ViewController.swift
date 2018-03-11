@@ -544,18 +544,18 @@ extension ViewController: CLLocationManagerDelegate {
         if speed < 0 {
             speed = 0
         }
-        /*
         speed *= 3.6
         
         sendSpeed(speed:speed)
-        */
+
+        /*
         sendSpeed(speed:testSpeed)
          if testSpeed > 120 {
             testSpeed = 40
          } else {
             testSpeed += 10.0
          }
-         
+        */
         // 時速10キロを超えたら録画を自動的に開始する
         if speed > speeds[0] && !recordingInProgress && autoStartEnabled {
             startRecording()
