@@ -11,6 +11,8 @@
 
 ![](./doracame.PNG)
 
+![](./doracame_koshian.JPG)
+
 ### 主な機能（平成３０年３月６日の時点）
 
 + GPSを利用した走行速度の表示（スピードメーターの背景は50km/hで青、70km/hで紫、100km/hで赤、110km/h以上で赤の点滅）
@@ -35,9 +37,15 @@
 
 
 ### BLE接続するマイコンアプリケーション
-Adafruit Bluefruit LE Microを使ったスピードディスプレイ。
+~~Adafruit Bluefruit LE Microを使ったスピードディスプレイ。~~
 
- [Speedmeter](https://github.com/kazz12211/blespeedmeter)
+[~~Speedmeter~~](https://github.com/kazz12211/blespeedmeter)
+
+KoshianにLED回路と高圧回路を組あせたモジュールを使用。
+
+![](./koshian01.JPG)
+
+![](./koshian02.JPG)
 
 ### 開発上の課題
 
