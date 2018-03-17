@@ -20,7 +20,7 @@ struct Constants {
     static let SpeedSlow = 50.0
     static let SpeedNormal = 70.0
     static let SpeedHigh = 100.0
-    static let SpeedVeryHigh = 110.0
+    static let SpeedVeryHigh = 120.0
     static let SpeedVerySlowKey = "SpeedVerySlow"
     static let SpeedSlowKey = "SpeedSlow"
     static let SpeedNormalKey = "SpeedNormal"

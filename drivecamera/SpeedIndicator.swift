@@ -24,6 +24,7 @@ class SpeedIndicator : NSObject {
     static let SpeedRangeHigh = UInt(2)
     static let SpeedRangeVeryHigh = UInt(3)
     
+    var connected: Bool = false
     var speedRange: UInt = SpeedRangeSlow
     var blinkTimer: Timer! = nil
 
@@ -53,6 +54,10 @@ class SpeedIndicator : NSObject {
         return koshian.connected
     }
     
+    func isConnected() -> Bool {
+        return connected;
+    }
+    
     private func setupPinMode() {
         var result:Int
         result = koshian.pinMode(pin: SpeedIndicator.GreenLED, mode: KoshianConstants.PinModeOutput)
@@ -68,6 +73,8 @@ class SpeedIndicator : NSObject {
     }
     
     @objc func koshianConnected(notif: Notification) {
+        connected = true
+        
         setupPinMode()
         
         digitalWrite(pin: SpeedIndicator.GreenLED, value: KoshianConstants.HIGH)
@@ -105,6 +112,7 @@ class SpeedIndicator : NSObject {
     }
     
     @objc func koshianDisconnected(notif: Notification) {
+        connected = false
         NotificationCenter.default.post(name: SpeedIndicator.SpeedIndicatorNotReady, object: self)
     }
     
@@ -116,6 +124,7 @@ class SpeedIndicator : NSObject {
     }
     
     @objc func koshianTimeout(notif: Notification) {
+        connected = false
         NotificationCenter.default.post(name: SpeedIndicator.SpeedIndicatorNotReady, object: self)
     }
     

@@ -288,6 +288,7 @@ class ViewController: UIViewController {
             } else {
                 logFilePath = nil
             }
+            
 
             updateButtons()
         }
@@ -369,6 +370,9 @@ class ViewController: UIViewController {
     @objc func batteryStateChanged(notification: NSNotification)  {
         if recordingInProgress && UIDevice.current.batteryState == .unplugged {
             stopRecording()
+        }
+        if (UIDevice.current.batteryState == .charging || UIDevice.current.batteryState == .full) && !speedIndicator.isConnected() {
+            speedIndicator.connect()
         }
     }
 
@@ -575,38 +579,6 @@ extension ViewController {
         autoStopEnabled = defaults.bool(forKey: Constants.AutoStopEnabledKey)
         videoQuality = defaults.integer(forKey: Constants.VideoQualityKey)
         speeds = [Constants.SpeedVerySlow, Constants.SpeedSlow, Constants.SpeedNormal, Constants.SpeedHigh, Constants.SpeedVeryHigh]
-        /*
-        if defaults.double(forKey: Constants.SpeedVerySlowKey) != 0 {
-            speeds[0] = defaults.double(forKey: Constants.SpeedVerySlowKey)
-            if speeds[0] < Constants.SpeedVerySlow {
-                speeds[0] = Constants.SpeedVerySlow
-            }
-        }
-        if defaults.double(forKey: Constants.SpeedSlowKey) != 0 {
-            speeds[1] = defaults.double(forKey: Constants.SpeedSlowKey)
-            if speeds[1] < Constants.SpeedSlow {
-                speeds[1] = Constants.SpeedSlow
-            }
-        }
-        if defaults.double(forKey: Constants.SpeedNormalKey) != 0 {
-            speeds[2] = defaults.double(forKey: Constants.SpeedNormalKey)
-            if speeds[2] < Constants.SpeedNormal {
-                speeds[2] = Constants.SpeedNormal
-            }
-        }
-        if defaults.double(forKey: Constants.SpeedHighKey) != 0 {
-            speeds[3] = defaults.double(forKey: Constants.SpeedHighKey)
-            if speeds[3] < Constants.SpeedHigh {
-                speeds[3] = Constants.SpeedHigh
-            }
-        }
-        if defaults.double(forKey: Constants.SpeedVeryHighKey) != 0 {
-            speeds[4] = defaults.double(forKey: Constants.SpeedVeryHighKey)
-            if speeds[4] < Constants.SpeedVeryHigh {
-                speeds[4] = Constants.SpeedVeryHigh
-            }
-        }
-         */
         recordAudio = defaults.bool(forKey: Constants.RecordAudioKey)
         gpsLogging = defaults.bool(forKey: Constants.GPSLogEnabledKey)
     }
